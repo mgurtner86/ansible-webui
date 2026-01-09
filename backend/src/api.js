@@ -5,6 +5,12 @@ import pgSession from 'connect-pg-simple';
 import bcrypt from 'bcrypt';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import inventoriesRouter from './routes/inventories.js';
+import credentialsRouter from './routes/credentials.js';
+import projectsRouter from './routes/projects.js';
+import templatesRouter from './routes/templates.js';
+import jobsRouter from './routes/jobs.js';
+import schedulesRouter from './routes/schedules.js';
 
 dotenv.config();
 
@@ -176,6 +182,13 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.use('/api/inventories', inventoriesRouter);
+app.use('/api/credentials', credentialsRouter);
+app.use('/api/projects', projectsRouter);
+app.use('/api/templates', templatesRouter);
+app.use('/api/jobs', jobsRouter);
+app.use('/api/schedules', schedulesRouter);
 
 const PORT = process.env.API_PORT || 3001;
 
