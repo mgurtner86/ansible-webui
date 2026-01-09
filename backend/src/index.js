@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import pg from 'pg';
 import Redis from 'ioredis';
 import dotenv from 'dotenv';
+import './api.js';
 
 dotenv.config();
 
