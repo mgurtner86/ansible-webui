@@ -6,9 +6,9 @@ A comprehensive web application for managing and executing Ansible automations w
 
 This is a full-featured Ansible automation management platform built with:
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL) + Edge Functions
-- **Authentication**: Supabase Auth with role-based access control
-- **Realtime**: Supabase Realtime for live job monitoring
+- **Backend**: Node.js + Express + PostgreSQL
+- **Authentication**: Session-based auth with role-based access control
+- **Job Queue**: BullMQ with Redis
 - **Architecture**: MVC (Model-View-Controller) pattern
 
 ## Features
@@ -23,33 +23,58 @@ This is a full-featured Ansible automation management platform built with:
 - Complete audit trail
 - Responsive UI with modern design
 
+## Quick Start
+
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 20+ (for local development)
+
+### Starting the Application
+
+1. Build and start all services:
+```bash
+docker compose down
+docker compose up -d --build
+```
+
+2. Access the application:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+
+### Default Login Credentials
+
+```
+Email: admin@ansible-tower.local
+Password: admin123
+```
+
+### Stopping the Application
+
+```bash
+docker compose down
+```
+
 ## Project Structure
 
 ```
 project/
-├── src/
+├── src/                          # Frontend source
 │   ├── lib/
-│   │   └── supabase.ts          # Supabase client configuration
+│   │   └── api.ts                # API client
 │   ├── contexts/
-│   │   └── AuthContext.tsx       # Authentication context & user management
+│   │   └── AuthContext.tsx       # Authentication context
 │   ├── components/
-│   │   ├── Layout.tsx            # Main application layout with sidebar
-│   │   └── ProtectedRoute.tsx    # Route protection component
-│   ├── pages/
-│   │   ├── Login.tsx             # Login & signup page
-│   │   ├── Dashboard.tsx         # Main dashboard with stats
-│   │   ├── Projects.tsx          # Git project management
-│   │   ├── Inventories.tsx       # Inventory management
-│   │   ├── Credentials.tsx       # Secure credential storage
-│   │   ├── Templates.tsx         # Job template management
-│   │   ├── Jobs.tsx              # Job execution & monitoring
-│   │   ├── Schedules.tsx         # Cron schedule management
-│   │   └── Audit.tsx             # Audit log viewer
-│   ├── App.tsx                   # Main app with routing
-│   └── main.tsx                  # Application entry point
-├── supabase/
-│   └── functions/
-│       ├── job-runner/           # Job execution edge function
-│       └── project-sync/         # Project sync edge function
-└── .env                          # Environment variables
+│   │   ├── Layout.tsx            # Main layout with sidebar
+│   │   └── ProtectedRoute.tsx    # Route protection
+│   └── pages/                    # Page components
+├── backend/                      # Backend API
+│   └── src/
+│       ├── api.js                # Express API server
+│       ├── index.js              # Main entry point
+│       └── seed.js               # Database seeding
+├── database/                     # Database initialization
+│   └── init/
+│       ├── 01_schema.sql         # Database schema
+│       └── 02_seed_data.sql      # Initial data
+└── docker-compose.yml            # Docker services
 
