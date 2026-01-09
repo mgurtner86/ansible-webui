@@ -22,4 +22,4 @@ RUN chmod +x start.sh
 # Expose health check port
 EXPOSE 3001
 
-CMD ["./start.sh"]
+CMD ["/bin/sh", "./start.sh"]
