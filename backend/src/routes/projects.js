@@ -13,7 +13,18 @@ const requireAuth = (req, res, next) => {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.*, u.full_name as owner_name,
+      SELECT
+        p.id, p.name, p.description,
+        p.git_url as scm_url,
+        p.git_branch as scm_branch,
+        p.git_credential_id as scm_credential_id,
+        p.sync_status as last_sync_status,
+        p.last_sync_at,
+        p.sync_error,
+        p.owner_id,
+        p.created_at,
+        p.updated_at,
+        u.full_name as owner_name,
         (SELECT COUNT(*) FROM playbooks WHERE project_id = p.id) as playbook_count
       FROM projects p
       JOIN users u ON p.owner_id = u.id
@@ -29,7 +40,18 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.*, u.full_name as owner_name
+      SELECT
+        p.id, p.name, p.description,
+        p.git_url as scm_url,
+        p.git_branch as scm_branch,
+        p.git_credential_id as scm_credential_id,
+        p.sync_status as last_sync_status,
+        p.last_sync_at,
+        p.sync_error,
+        p.owner_id,
+        p.created_at,
+        p.updated_at,
+        u.full_name as owner_name
       FROM projects p
       JOIN users u ON p.owner_id = u.id
       WHERE p.id = $1
@@ -48,13 +70,23 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { name, description, scm_type, scm_url, scm_branch, scm_credential_id } = req.body;
+    const { name, description, scm_url, scm_branch, scm_credential_id } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO projects (name, description, scm_type, scm_url, scm_branch, scm_credential_id, owner_id, last_sync_status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-      RETURNING *
-    `, [name, description || '', scm_type || 'git', scm_url, scm_branch || 'main', scm_credential_id || null, req.session.userId, 'pending']);
+      INSERT INTO projects (name, description, git_url, git_branch, git_credential_id, owner_id, sync_status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      RETURNING
+        id, name, description,
+        git_url as scm_url,
+        git_branch as scm_branch,
+        git_credential_id as scm_credential_id,
+        sync_status as last_sync_status,
+        last_sync_at,
+        sync_error,
+        owner_id,
+        created_at,
+        updated_at
+    `, [name, description || '', scm_url, scm_branch || 'main', scm_credential_id || null, req.session.userId, 'pending']);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -65,14 +97,24 @@ router.post('/', requireAuth, async (req, res) => {
 
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const { name, description, scm_type, scm_url, scm_branch, scm_credential_id } = req.body;
+    const { name, description, scm_url, scm_branch, scm_credential_id } = req.body;
 
     const result = await pool.query(`
       UPDATE projects
-      SET name = $1, description = $2, scm_type = $3, scm_url = $4, scm_branch = $5, scm_credential_id = $6, updated_at = NOW()
-      WHERE id = $7 AND owner_id = $8
-      RETURNING *
-    `, [name, description, scm_type, scm_url, scm_branch, scm_credential_id || null, req.params.id, req.session.userId]);
+      SET name = $1, description = $2, git_url = $3, git_branch = $4, git_credential_id = $5, updated_at = NOW()
+      WHERE id = $6 AND owner_id = $7
+      RETURNING
+        id, name, description,
+        git_url as scm_url,
+        git_branch as scm_branch,
+        git_credential_id as scm_credential_id,
+        sync_status as last_sync_status,
+        last_sync_at,
+        sync_error,
+        owner_id,
+        created_at,
+        updated_at
+    `, [name, description, scm_url, scm_branch, scm_credential_id || null, req.params.id, req.session.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Project not found' });
@@ -106,7 +148,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 router.post('/:id/sync', requireAuth, async (req, res) => {
   try {
     await pool.query(
-      'UPDATE projects SET last_sync_at = NOW(), last_sync_status = $1 WHERE id = $2',
+      'UPDATE projects SET last_sync_at = NOW(), sync_status = $1 WHERE id = $2',
       ['success', req.params.id]
     );
 
@@ -120,7 +162,7 @@ router.post('/:id/sync', requireAuth, async (req, res) => {
 router.get('/:projectId/playbooks', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM playbooks WHERE project_id = $1 ORDER BY path',
+      'SELECT id, project_id, name, file_path as path, content, description, created_at, updated_at FROM playbooks WHERE project_id = $1 ORDER BY file_path',
       [req.params.projectId]
     );
     res.json(result.rows);
@@ -135,9 +177,9 @@ router.post('/:projectId/playbooks', requireAuth, async (req, res) => {
     const { name, path, description } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO playbooks (project_id, name, path, description, created_at, updated_at)
+      INSERT INTO playbooks (project_id, name, file_path, description, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
-      RETURNING *
+      RETURNING id, project_id, name, file_path as path, content, description, created_at, updated_at
     `, [req.params.projectId, name, path, description || '']);
 
     res.status(201).json(result.rows[0]);

@@ -14,14 +14,14 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.*, u.full_name as owner_name,
-        p.name as project_name,
+        proj.name as project_name,
         pb.name as playbook_name,
         i.name as inventory_name,
         c.name as credential_name
-      FROM job_templates t
+      FROM templates t
       JOIN users u ON t.owner_id = u.id
-      LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN playbooks pb ON t.playbook_id = pb.id
+      LEFT JOIN projects proj ON pb.project_id = proj.id
       LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN credentials c ON t.credential_id = c.id
       ORDER BY t.created_at DESC
@@ -37,14 +37,14 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.*, u.full_name as owner_name,
-        p.name as project_name,
+        proj.name as project_name,
         pb.name as playbook_name,
         i.name as inventory_name,
         c.name as credential_name
-      FROM job_templates t
+      FROM templates t
       JOIN users u ON t.owner_id = u.id
-      LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN playbooks pb ON t.playbook_id = pb.id
+      LEFT JOIN projects proj ON pb.project_id = proj.id
       LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN credentials c ON t.credential_id = c.id
       WHERE t.id = $1
@@ -63,13 +63,13 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { name, description, project_id, playbook_id, inventory_id, credential_id, job_type, verbosity, extra_vars, tags, skip_tags, limit } = req.body;
+    const { name, description, playbook_id, inventory_id, credential_id, verbosity, extra_vars_schema, tags, skip_tags, limits, forks, timeout, become } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO job_templates (name, description, project_id, playbook_id, inventory_id, credential_id, job_type, verbosity, extra_vars, tags, skip_tags, limit, owner_id, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      INSERT INTO templates (name, description, playbook_id, inventory_id, credential_id, verbosity, extra_vars_schema, tags, skip_tags, limits, forks, timeout, become, owner_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
       RETURNING *
-    `, [name, description || '', project_id, playbook_id, inventory_id, credential_id || null, job_type || 'run', verbosity || 0, extra_vars || {}, tags || '', skip_tags || '', limit || '', req.session.userId]);
+    `, [name, description || '', playbook_id, inventory_id, credential_id || null, verbosity || 0, extra_vars_schema || {}, tags || [], skip_tags || [], limits || null, forks || 5, timeout || 3600, become || false, req.session.userId]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -80,14 +80,14 @@ router.post('/', requireAuth, async (req, res) => {
 
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const { name, description, project_id, playbook_id, inventory_id, credential_id, job_type, verbosity, extra_vars, tags, skip_tags, limit } = req.body;
+    const { name, description, playbook_id, inventory_id, credential_id, verbosity, extra_vars_schema, tags, skip_tags, limits, forks, timeout, become } = req.body;
 
     const result = await pool.query(`
-      UPDATE job_templates
-      SET name = $1, description = $2, project_id = $3, playbook_id = $4, inventory_id = $5, credential_id = $6, job_type = $7, verbosity = $8, extra_vars = $9, tags = $10, skip_tags = $11, limit = $12, updated_at = NOW()
-      WHERE id = $13 AND owner_id = $14
+      UPDATE templates
+      SET name = $1, description = $2, playbook_id = $3, inventory_id = $4, credential_id = $5, verbosity = $6, extra_vars_schema = $7, tags = $8, skip_tags = $9, limits = $10, forks = $11, timeout = $12, become = $13, updated_at = NOW()
+      WHERE id = $14 AND owner_id = $15
       RETURNING *
-    `, [name, description, project_id, playbook_id, inventory_id, credential_id || null, job_type, verbosity, extra_vars, tags, skip_tags, limit, req.params.id, req.session.userId]);
+    `, [name, description, playbook_id, inventory_id, credential_id || null, verbosity, extra_vars_schema, tags, skip_tags, limits, forks, timeout, become, req.params.id, req.session.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Template not found' });
@@ -103,7 +103,7 @@ router.put('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM job_templates WHERE id = $1 AND owner_id = $2 RETURNING id',
+      'DELETE FROM templates WHERE id = $1 AND owner_id = $2 RETURNING id',
       [req.params.id, req.session.userId]
     );
 
