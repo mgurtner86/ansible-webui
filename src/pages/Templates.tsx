@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
 import { Plus, Play, X, Trash2, Pencil } from 'lucide-react';
 import type { Template } from '../types';
 
 export default function Templates() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [inventories, setInventories] = useState<any[]>([]);
@@ -116,10 +118,11 @@ export default function Templates() {
 
   async function handleLaunch(id: string) {
     try {
-      await api.templates.launch(id, {});
-      alert('Job launched successfully!');
+      const job = await api.templates.launch(id, {});
+      navigate(`/jobs/${job.id}`);
     } catch (error) {
       console.error('Failed to launch template:', error);
+      alert('Failed to launch template');
     }
   }
 

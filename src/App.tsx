@@ -6,6 +6,7 @@ import Playbooks from './pages/Playbooks';
 import Inventories from './pages/Inventories';
 import Templates from './pages/Templates';
 import Jobs from './pages/Jobs';
+import JobExecution from './pages/JobExecution';
 import Credentials from './pages/Credentials';
 import Schedules from './pages/Schedules';
 import Audit from './pages/Audit';
@@ -79,6 +80,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Jobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:id"
+        element={
+          <ProtectedRoute>
+            <JobExecution />
           </ProtectedRoute>
         }
       />
