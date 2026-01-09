@@ -1,23 +1,17 @@
 import express from 'express';
-import { pool } from '../api.js';
+import { pool } from '../db/index.js';
 
 const router = express.Router();
 
-const requireAuth = (req, res, next) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
-
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT j.*, u.full_name as triggered_by_name,
-        t.name as template_name
+      SELECT j.*,
+             t.name as template_name,
+             u.full_name as triggered_by_name
       FROM jobs j
-      JOIN users u ON j.triggered_by = u.id
       LEFT JOIN templates t ON j.template_id = t.id
+      LEFT JOIN users u ON j.triggered_by = u.id
       ORDER BY j.created_at DESC
       LIMIT 100
     `);
@@ -28,20 +22,15 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT j.*, u.full_name as triggered_by_name,
-        t.name as template_name,
-        pb.name as playbook_name,
-        p.name as project_name,
-        i.name as inventory_name
+      SELECT j.*,
+             t.name as template_name,
+             u.full_name as triggered_by_name
       FROM jobs j
-      JOIN users u ON j.triggered_by = u.id
       LEFT JOIN templates t ON j.template_id = t.id
-      LEFT JOIN playbooks pb ON t.playbook_id = pb.id
-      LEFT JOIN projects p ON pb.project_id = p.id
-      LEFT JOIN inventories i ON t.inventory_id = i.id
+      LEFT JOIN users u ON j.triggered_by = u.id
       WHERE j.id = $1
     `, [req.params.id]);
 
@@ -56,64 +45,32 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.get('/:id/events', async (req, res) => {
   try {
-    const { template_id, extra_vars } = req.body;
-
     const result = await pool.query(`
-      INSERT INTO jobs (template_id, triggered_by, status, extra_vars, created_at)
-      VALUES ($1, $2, $3, $4, NOW())
-      RETURNING *
-    `, [template_id, req.session.userId, 'queued', extra_vars || {}]);
+      SELECT * FROM job_events
+      WHERE job_id = $1
+      ORDER BY timestamp ASC
+    `, [req.params.id]);
 
-    setTimeout(async () => {
-      try {
-        await pool.query(
-          `UPDATE jobs SET status = 'running' WHERE id = $1`,
-          [result.rows[0].id]
-        );
-
-        await pool.query(`
-          INSERT INTO job_events (job_id, event_type, message, timestamp)
-          VALUES ($1, 'playbook_on_start', 'Starting playbook execution', NOW())
-        `, [result.rows[0].id]);
-
-        setTimeout(async () => {
-          try {
-            await pool.query(
-              `UPDATE jobs SET status = 'success', finished_at = NOW() WHERE id = $1`,
-              [result.rows[0].id]
-            );
-
-            await pool.query(`
-              INSERT INTO job_events (job_id, event_type, message, timestamp)
-              VALUES ($1, 'playbook_on_stats', 'Playbook execution completed successfully', NOW())
-            `, [result.rows[0].id]);
-          } catch (err) {
-            console.error('Job completion error:', err);
-          }
-        }, 3000);
-      } catch (err) {
-        console.error('Job start error:', err);
-      }
-    }, 1000);
-
-    res.status(201).json(result.rows[0]);
+    res.json(result.rows);
   } catch (error) {
-    console.error('Create job error:', error);
+    console.error('Get job events error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.post('/:id/cancel', requireAuth, async (req, res) => {
+router.post('/:id/cancel', async (req, res) => {
   try {
-    const result = await pool.query(
-      `UPDATE jobs SET status = 'cancelled', finished_at = NOW() WHERE id = $1 RETURNING *`,
-      [req.params.id]
-    );
+    const result = await pool.query(`
+      UPDATE jobs
+      SET status = 'cancelled', finished_at = NOW()
+      WHERE id = $1 AND status IN ('queued', 'running')
+      RETURNING *
+    `, [req.params.id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Job not found' });
+      return res.status(404).json({ error: 'Job not found or already finished' });
     }
 
     res.json(result.rows[0]);
@@ -123,15 +80,17 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/:id/events', requireAuth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM job_events WHERE job_id = $1 ORDER BY timestamp',
-      [req.params.id]
-    );
-    res.json(result.rows);
+    const result = await pool.query('DELETE FROM jobs WHERE id = $1 RETURNING id', [req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json({ message: 'Job deleted successfully' });
   } catch (error) {
-    console.error('Get job events error:', error);
+    console.error('Delete job error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -1,226 +1,127 @@
-import { Worker } from 'bullmq';
-import pg from 'pg';
-import Redis from 'ioredis';
+import express from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import pgSession from 'connect-pg-simple';
 import dotenv from 'dotenv';
-import './api.js';
+import { pool } from './db/index.js';
+
+import authRoutes from './routes/auth.js';
+import projectsRoutes from './routes/projects.js';
+import inventoriesRoutes from './routes/inventories.js';
+import templatesRoutes from './routes/templates.js';
+import jobsRoutes from './routes/jobs.js';
+import credentialsRoutes from './routes/credentials.js';
+import schedulesRoutes from './routes/schedules.js';
 
 dotenv.config();
 
-const { Pool } = pg;
+const app = express();
+const PgSession = pgSession(session);
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://ansible:ansible_password@postgres:5432/ansible_tower',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379,
-  maxRetriesPerRequest: null,
-});
+app.use(express.json());
 
-console.log('🚀 Ansible Worker Service starting...');
-console.log(`📡 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Using default connection'}`);
-console.log(`📦 Redis: ${process.env.REDIS_HOST || 'redis'}:${process.env.REDIS_PORT || 6379}`);
-
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ PostgreSQL connection error:', err);
-});
-
-const worker = new Worker(
-  'ansible-jobs',
-  async (job) => {
-    console.log(`🔄 Processing job ${job.data.job_id}`);
-
-    const client = await pool.connect();
-
-    try {
-      const { job_id, template_id, extra_vars, limit, tags } = job.data;
-
-      await client.query('BEGIN');
-
-      // Update job status to running
-      await client.query(
-        'UPDATE jobs SET status = $1, started_at = NOW() WHERE id = $2',
-        ['running', job_id]
-      );
-
-      // Create job started event
-      await client.query(
-        `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
-         VALUES ($1, NOW(), $2, $3, $4, $5)`,
-        [
-          job_id,
-          'info',
-          'job_started',
-          'Job execution started',
-          JSON.stringify({ template_id, extra_vars, limit, tags })
-        ]
-      );
-
-      // Get template details
-      const templateResult = await client.query(
-        `SELECT
-          t.*,
-          p.name as playbook_name,
-          p.file_path as playbook_path,
-          i.name as inventory_name,
-          i.content_or_ref as inventory_content
-         FROM templates t
-         JOIN playbooks p ON t.playbook_id = p.id
-         JOIN inventories i ON t.inventory_id = i.id
-         WHERE t.id = $1`,
-        [template_id]
-      );
-
-      if (templateResult.rows.length === 0) {
-        throw new Error('Template not found');
-      }
-
-      const template = templateResult.rows[0];
-
-      // Simulate Ansible execution
-      await simulateAnsibleExecution(client, job_id, template, extra_vars, limit, tags);
-
-      // Update job status to success
-      const summary = {
-        ok: Math.floor(Math.random() * 10) + 5,
-        changed: Math.floor(Math.random() * 5),
-        unreachable: 0,
-        failed: 0,
-        skipped: Math.floor(Math.random() * 3),
-        rescued: 0,
-        ignored: 0
-      };
-
-      await client.query(
-        'UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2, summary = $3 WHERE id = $4',
-        ['success', 0, JSON.stringify(summary), job_id]
-      );
-
-      // Create job completed event
-      await client.query(
-        `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
-         VALUES ($1, NOW(), $2, $3, $4, $5)`,
-        [
-          job_id,
-          'info',
-          'job_completed',
-          'Job execution completed successfully',
-          JSON.stringify({ summary })
-        ]
-      );
-
-      await client.query('COMMIT');
-
-      console.log(`✅ Job ${job_id} completed successfully`);
-      return { success: true, job_id };
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error(`❌ Job ${job.data.job_id} failed:`, error);
-
-      try {
-        // Update job status to failed
-        await client.query(
-          'UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2 WHERE id = $3',
-          ['failed', 1, job.data.job_id]
-        );
-
-        // Create job failed event
-        await client.query(
-          `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
-           VALUES ($1, NOW(), $2, $3, $4, $5)`,
-          [
-            job.data.job_id,
-            'error',
-            'job_failed',
-            error.message,
-            JSON.stringify({ error: error.message })
-          ]
-        );
-      } catch (updateError) {
-        console.error('Failed to update job failure status:', updateError);
-      }
-
-      throw error;
-    } finally {
-      client.release();
-    }
-  },
-  { connection }
+app.use(
+  session({
+    store: new PgSession({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'ansible-tower-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false,
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  })
 );
 
-async function simulateAnsibleExecution(client, jobId, template, extraVars, limit, tags) {
-  const tasks = [
-    'Gathering Facts',
-    'Install packages',
-    'Configure services',
-    'Deploy application',
-    'Restart services',
-    'Verify deployment'
-  ];
+const requireAuth = (req, res, next) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+};
 
-  for (const [index, task] of tasks.entries()) {
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+app.use('/api/auth', authRoutes);
+app.use('/api/projects', requireAuth, projectsRoutes);
+app.use('/api/inventories', requireAuth, inventoriesRoutes);
+app.use('/api/templates', requireAuth, templatesRoutes);
+app.use('/api/jobs', requireAuth, jobsRoutes);
+app.use('/api/credentials', requireAuth, credentialsRoutes);
+app.use('/api/schedules', requireAuth, schedulesRoutes);
 
-    const isChanged = Math.random() > 0.5;
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-    await client.query(
-      `INSERT INTO job_events (job_id, timestamp, level, host, task, event_type, message, raw_json)
-       VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7)`,
-      [
-        jobId,
-        'info',
-        'localhost',
-        task,
-        isChanged ? 'runner_on_ok' : 'runner_on_skipped',
-        isChanged ? `Task completed: ${task}` : `Task skipped: ${task}`,
-        JSON.stringify({
-          changed: isChanged,
-          task_number: index + 1,
-          total_tasks: tasks.length
-        })
-      ]
-    );
+app.get('/api/stats', requireAuth, async (req, res) => {
+  try {
+    const [projects, inventories, templates, jobs] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM projects'),
+      pool.query('SELECT COUNT(*) as count FROM inventories'),
+      pool.query('SELECT COUNT(*) as count FROM templates'),
+      pool.query('SELECT COUNT(*) as count FROM jobs'),
+    ]);
 
-    console.log(`  ⚙️  [${index + 1}/${tasks.length}] ${task} - ${isChanged ? 'changed' : 'skipped'}`);
+    const [recentJobs, jobsByStatus] = await Promise.all([
+      pool.query(`
+        SELECT j.*, t.name as template_name
+        FROM jobs j
+        LEFT JOIN templates t ON j.template_id = t.id
+        ORDER BY j.created_at DESC
+        LIMIT 5
+      `),
+      pool.query(`
+        SELECT status, COUNT(*) as count
+        FROM jobs
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+        GROUP BY status
+      `),
+    ]);
+
+    res.json({
+      totals: {
+        projects: parseInt(projects.rows[0].count),
+        inventories: parseInt(inventories.rows[0].count),
+        templates: parseInt(templates.rows[0].count),
+        jobs: parseInt(jobs.rows[0].count),
+      },
+      recentJobs: recentJobs.rows,
+      jobsByStatus: jobsByStatus.rows.reduce((acc, row) => {
+        acc[row.status] = parseInt(row.count);
+        return acc;
+      }, {}),
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+const PORT = process.env.API_PORT || 3001;
+
+async function startServer() {
+  try {
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connected successfully');
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Ansible Tower API Server running on port ${PORT}`);
+      console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔒 Session secret configured: ${!!process.env.SESSION_SECRET}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
 }
 
-worker.on('completed', (job) => {
-  console.log(`✅ Job ${job.id} has completed!`);
-});
-
-worker.on('failed', (job, err) => {
-  console.error(`❌ Job ${job?.id} has failed with error:`, err.message);
-});
-
-worker.on('error', (err) => {
-  console.error('⚠️  Worker error:', err);
-});
-
-console.log('✅ Worker is ready and listening for jobs...');
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('🛑 SIGTERM received, closing worker...');
-  await worker.close();
-  await connection.quit();
-  await pool.end();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('🛑 SIGINT received, closing worker...');
-  await worker.close();
-  await connection.quit();
-  await pool.end();
-  process.exit(0);
-});
+startServer();
