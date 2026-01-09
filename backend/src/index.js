@@ -4,6 +4,7 @@ import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import dotenv from 'dotenv';
 import { pool } from './db/index.js';
+import { startJobWorker } from './queue/job-processor.js';
 
 import authRoutes from './routes/auth.js';
 import playbooksRoutes from './routes/playbooks.js';
@@ -112,6 +113,8 @@ async function startServer() {
   try {
     await pool.query('SELECT NOW()');
     console.log('✅ Database connected successfully');
+
+    startJobWorker();
 
     app.listen(PORT, () => {
       console.log(`🚀 Ansible Tower API Server running on port ${PORT}`);

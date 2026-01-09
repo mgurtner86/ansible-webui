@@ -1,20 +1,26 @@
 import express from 'express';
+import { Queue } from 'bullmq';
 import { pool } from '../db/index.js';
 
 const router = express.Router();
+
+const jobQueue = new Queue('ansible-jobs', {
+  connection: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+  },
+});
 
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.*,
              p.name as playbook_name,
-             proj.name as project_name,
              i.name as inventory_name,
              c.name as credential_name,
              u.full_name as owner_name
       FROM templates t
       LEFT JOIN playbooks p ON t.playbook_id = p.id
-      LEFT JOIN projects proj ON p.project_id = proj.id
       LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN credentials c ON t.credential_id = c.id
       LEFT JOIN users u ON t.owner_id = u.id
@@ -129,11 +135,17 @@ router.post('/:id/launch', async (req, res) => {
 
     const result = await pool.query(`
       INSERT INTO jobs (template_id, triggered_by, status, extra_vars, limits, tags)
-      VALUES ($1, $2, 'queued', $3, $4, $5)
+      VALUES ($1, $2, 'pending', $3, $4, $5)
       RETURNING *
     `, [req.params.id, req.session.userId, extra_vars || {}, limits || null, tags || []]);
 
-    res.status(201).json(result.rows[0]);
+    const job = result.rows[0];
+
+    await jobQueue.add('execute-playbook', {
+      jobId: job.id,
+    });
+
+    res.status(201).json(job);
   } catch (error) {
     console.error('Launch template error:', error);
     res.status(500).json({ error: 'Internal server error' });

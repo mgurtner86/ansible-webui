@@ -8,9 +8,16 @@ router.get('/', async (req, res) => {
     const result = await pool.query(`
       SELECT j.*,
              t.name as template_name,
-             u.full_name as triggered_by_name
+             i.name as inventory_name,
+             u.full_name as triggered_by_name,
+             COALESCE(
+               (SELECT string_agg(message || E'\n', '' ORDER BY timestamp)
+                FROM job_events WHERE job_id = j.id),
+               ''
+             ) as output
       FROM jobs j
       LEFT JOIN templates t ON j.template_id = t.id
+      LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN users u ON j.triggered_by = u.id
       ORDER BY j.created_at DESC
       LIMIT 100
@@ -27,9 +34,16 @@ router.get('/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT j.*,
              t.name as template_name,
-             u.full_name as triggered_by_name
+             i.name as inventory_name,
+             u.full_name as triggered_by_name,
+             COALESCE(
+               (SELECT string_agg(message || E'\n', '' ORDER BY timestamp)
+                FROM job_events WHERE job_id = j.id),
+               ''
+             ) as output
       FROM jobs j
       LEFT JOIN templates t ON j.template_id = t.id
+      LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN users u ON j.triggered_by = u.id
       WHERE j.id = $1
     `, [req.params.id]);
