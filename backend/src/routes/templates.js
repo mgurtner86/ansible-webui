@@ -135,7 +135,7 @@ router.post('/:id/launch', async (req, res) => {
 
     const result = await pool.query(`
       INSERT INTO jobs (template_id, triggered_by, status, extra_vars, limits, tags)
-      VALUES ($1, $2, 'pending', $3, $4, $5)
+      VALUES ($1, $2, 'queued', $3, $4, $5)
       RETURNING *
     `, [req.params.id, req.session.userId, extra_vars || {}, limits || null, tags || []]);
 
