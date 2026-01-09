@@ -64,7 +64,26 @@ async function processJob(job) {
       [jobId, 'info', 'Starting playbook execution']
     );
 
-    const command = `ansible-playbook -i ${inventoryPath} ${playbookPath} --check`;
+    // Build ansible-playbook command with template options
+    let command = `ansible-playbook -i ${inventoryPath} ${playbookPath}`;
+
+    // Add verbosity flags
+    if (data.verbosity && data.verbosity > 0) {
+      command += ' -' + 'v'.repeat(data.verbosity);
+    }
+
+    // Add forks option
+    if (data.forks) {
+      command += ` --forks ${data.forks}`;
+    }
+
+    // Add become option
+    if (data.become) {
+      command += ' --become';
+    }
+
+    // Add check mode
+    command += ' --check';
 
     try {
       const { stdout, stderr } = await execAsync(command, {
