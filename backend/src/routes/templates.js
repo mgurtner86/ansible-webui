@@ -14,14 +14,14 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.*, u.full_name as owner_name,
-        proj.name as project_name,
         pb.name as playbook_name,
+        p.name as project_name,
         i.name as inventory_name,
         c.name as credential_name
       FROM templates t
       JOIN users u ON t.owner_id = u.id
       LEFT JOIN playbooks pb ON t.playbook_id = pb.id
-      LEFT JOIN projects proj ON pb.project_id = proj.id
+      LEFT JOIN projects p ON pb.project_id = p.id
       LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN credentials c ON t.credential_id = c.id
       ORDER BY t.created_at DESC
@@ -37,14 +37,14 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.*, u.full_name as owner_name,
-        proj.name as project_name,
         pb.name as playbook_name,
+        p.name as project_name,
         i.name as inventory_name,
         c.name as credential_name
       FROM templates t
       JOIN users u ON t.owner_id = u.id
       LEFT JOIN playbooks pb ON t.playbook_id = pb.id
-      LEFT JOIN projects proj ON pb.project_id = proj.id
+      LEFT JOIN projects p ON pb.project_id = p.id
       LEFT JOIN inventories i ON t.inventory_id = i.id
       LEFT JOIN credentials c ON t.credential_id = c.id
       WHERE t.id = $1

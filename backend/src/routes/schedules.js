@@ -13,11 +13,11 @@ const requireAuth = (req, res, next) => {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, u.full_name as owner_name,
-        jt.name as template_name
+      SELECT s.*, u.full_name as created_by_name,
+        t.name as template_name
       FROM schedules s
-      JOIN users u ON s.owner_id = u.id
-      LEFT JOIN job_templates jt ON s.job_template_id = jt.id
+      JOIN users u ON s.created_by = u.id
+      LEFT JOIN templates t ON s.template_id = t.id
       ORDER BY s.created_at DESC
     `);
     res.json(result.rows);
@@ -30,11 +30,11 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, u.full_name as owner_name,
-        jt.name as template_name
+      SELECT s.*, u.full_name as created_by_name,
+        t.name as template_name
       FROM schedules s
-      JOIN users u ON s.owner_id = u.id
-      LEFT JOIN job_templates jt ON s.job_template_id = jt.id
+      JOIN users u ON s.created_by = u.id
+      LEFT JOIN templates t ON s.template_id = t.id
       WHERE s.id = $1
     `, [req.params.id]);
 
@@ -51,13 +51,13 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { name, description, job_template_id, cron_expression, timezone, enabled } = req.body;
+    const { name, description, template_id, cron, timezone, enabled } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO schedules (name, description, job_template_id, cron_expression, timezone, enabled, owner_id, created_at, updated_at)
+      INSERT INTO schedules (name, description, template_id, cron, timezone, enabled, created_by, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *
-    `, [name, description || '', job_template_id, cron_expression, timezone || 'UTC', enabled !== false, req.session.userId]);
+    `, [name, description || '', template_id, cron, timezone || 'UTC', enabled !== false, req.session.userId]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -68,14 +68,14 @@ router.post('/', requireAuth, async (req, res) => {
 
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const { name, description, job_template_id, cron_expression, timezone, enabled } = req.body;
+    const { name, description, template_id, cron, timezone, enabled } = req.body;
 
     const result = await pool.query(`
       UPDATE schedules
-      SET name = $1, description = $2, job_template_id = $3, cron_expression = $4, timezone = $5, enabled = $6, updated_at = NOW()
-      WHERE id = $7 AND owner_id = $8
+      SET name = $1, description = $2, template_id = $3, cron = $4, timezone = $5, enabled = $6, updated_at = NOW()
+      WHERE id = $7
       RETURNING *
-    `, [name, description, job_template_id, cron_expression, timezone, enabled, req.params.id, req.session.userId]);
+    `, [name, description, template_id, cron, timezone, enabled, req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Schedule not found' });
@@ -91,8 +91,8 @@ router.put('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM schedules WHERE id = $1 AND owner_id = $2 RETURNING id',
-      [req.params.id, req.session.userId]
+      'DELETE FROM schedules WHERE id = $1 RETURNING id',
+      [req.params.id]
     );
 
     if (result.rows.length === 0) {
@@ -109,8 +109,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
 router.post('/:id/toggle', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      `UPDATE schedules SET enabled = NOT enabled, updated_at = NOW() WHERE id = $1 AND owner_id = $2 RETURNING *`,
-      [req.params.id, req.session.userId]
+      `UPDATE schedules SET enabled = NOT enabled, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      [req.params.id]
     );
 
     if (result.rows.length === 0) {
