@@ -20,9 +20,8 @@ This is a full-featured Ansible automation management platform built with:
 - Job templates with configurable parameters
 - Job execution with live monitoring and event streaming
 - Cron-based scheduling
-- Complete audit trail with Row Level Security (RLS)
+- Complete audit trail
 - Responsive UI with modern design
-- Production-ready security with optimized database policies
 
 ## Project Structure
 
@@ -53,38 +52,4 @@ project/
 │       ├── job-runner/           # Job execution edge function
 │       └── project-sync/         # Project sync edge function
 └── .env                          # Environment variables
-```
-
-## Security
-
-This application implements comprehensive security measures:
-
-- **Row Level Security (RLS)**: All database tables have optimized RLS policies
-- **Role-Based Access Control**: 4 roles with granular permissions
-- **Audit Logging**: Complete trail of all user actions
-- **Secure Credentials**: Encrypted storage for sensitive data
-- **Optimized Queries**: All policies use subqueries for better performance
-
-**Production Deployment**: See [SECURITY_CONFIG.md](./SECURITY_CONFIG.md) for required dashboard configurations including:
-- Leaked password protection
-- Database connection strategy
-- Production hardening checklist
-
-## Documentation
-
-- **[API.md](./API.md)** - REST API reference and examples
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture and design decisions
-- **[SECURITY_CONFIG.md](./SECURITY_CONFIG.md)** - Security configuration and best practices
-
-## Getting Started
-
-1. Clone the repository
-2. Configure Supabase connection in `.env`
-3. Run migrations from `supabase/migrations/`
-4. Install dependencies: `npm install`
-5. Start development server: `npm run dev`
-
-## License
-
-MIT License - See LICENSE file for details
 
