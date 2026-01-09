@@ -14,7 +14,7 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT i.*, u.full_name as owner_name,
-        (SELECT COUNT(*) FROM inventory_hosts WHERE inventory_id = i.id) as host_count
+        (SELECT COUNT(*) FROM hosts WHERE inventory_id = i.id) as host_count
       FROM inventories i
       JOIN users u ON i.owner_id = u.id
       ORDER BY i.created_at DESC
@@ -106,7 +106,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 router.get('/:inventoryId/hosts', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM inventory_hosts WHERE inventory_id = $1 ORDER BY hostname',
+      'SELECT * FROM hosts WHERE inventory_id = $1 ORDER BY hostname',
       [req.params.inventoryId]
     );
     res.json(result.rows);
@@ -121,7 +121,7 @@ router.post('/:inventoryId/hosts', requireAuth, async (req, res) => {
     const { hostname, vars, groups, enabled } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO inventory_hosts (inventory_id, hostname, vars, groups, enabled, created_at, updated_at)
+      INSERT INTO hosts (inventory_id, hostname, vars, groups, enabled, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `, [req.params.inventoryId, hostname, vars || {}, groups || [], enabled !== false]);
@@ -138,7 +138,7 @@ router.put('/:inventoryId/hosts/:hostId', requireAuth, async (req, res) => {
     const { hostname, vars, groups, enabled } = req.body;
 
     const result = await pool.query(`
-      UPDATE inventory_hosts
+      UPDATE hosts
       SET hostname = $1, vars = $2, groups = $3, enabled = $4, updated_at = NOW()
       WHERE id = $5 AND inventory_id = $6
       RETURNING *
@@ -158,7 +158,7 @@ router.put('/:inventoryId/hosts/:hostId', requireAuth, async (req, res) => {
 router.delete('/:inventoryId/hosts/:hostId', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM inventory_hosts WHERE id = $1 AND inventory_id = $2 RETURNING id',
+      'DELETE FROM hosts WHERE id = $1 AND inventory_id = $2 RETURNING id',
       [req.params.hostId, req.params.inventoryId]
     );
 

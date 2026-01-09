@@ -13,13 +13,11 @@ const requireAuth = (req, res, next) => {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT j.*, u.full_name as launched_by_name,
-        jt.name as template_name,
-        i.name as inventory_name
+      SELECT j.*, u.full_name as triggered_by_name,
+        t.name as template_name
       FROM jobs j
-      JOIN users u ON j.launched_by = u.id
-      LEFT JOIN job_templates jt ON j.job_template_id = jt.id
-      LEFT JOIN inventories i ON j.inventory_id = i.id
+      JOIN users u ON j.triggered_by = u.id
+      LEFT JOIN templates t ON j.template_id = t.id
       ORDER BY j.created_at DESC
       LIMIT 100
     `);
@@ -33,17 +31,17 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT j.*, u.full_name as launched_by_name,
-        jt.name as template_name,
-        i.name as inventory_name,
+      SELECT j.*, u.full_name as triggered_by_name,
+        t.name as template_name,
+        pb.name as playbook_name,
         p.name as project_name,
-        pb.name as playbook_name
+        i.name as inventory_name
       FROM jobs j
-      JOIN users u ON j.launched_by = u.id
-      LEFT JOIN job_templates jt ON j.job_template_id = jt.id
-      LEFT JOIN inventories i ON j.inventory_id = i.id
-      LEFT JOIN projects p ON j.project_id = p.id
-      LEFT JOIN playbooks pb ON j.playbook_id = pb.id
+      JOIN users u ON j.triggered_by = u.id
+      LEFT JOIN templates t ON j.template_id = t.id
+      LEFT JOIN playbooks pb ON t.playbook_id = pb.id
+      LEFT JOIN projects p ON pb.project_id = p.id
+      LEFT JOIN inventories i ON t.inventory_id = i.id
       WHERE j.id = $1
     `, [req.params.id]);
 
@@ -60,13 +58,13 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { job_template_id, inventory_id, project_id, playbook_id, credential_id, extra_vars } = req.body;
+    const { template_id, extra_vars } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO jobs (job_template_id, inventory_id, project_id, playbook_id, credential_id, extra_vars, status, launched_by, created_at, started_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      INSERT INTO jobs (template_id, triggered_by, status, extra_vars, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
       RETURNING *
-    `, [job_template_id || null, inventory_id, project_id, playbook_id, credential_id || null, extra_vars || {}, 'pending', req.session.userId]);
+    `, [template_id, req.session.userId, 'queued', extra_vars || {}]);
 
     setTimeout(async () => {
       try {
@@ -76,20 +74,20 @@ router.post('/', requireAuth, async (req, res) => {
         );
 
         await pool.query(`
-          INSERT INTO job_events (job_id, event_type, task, host, status, message, created_at)
-          VALUES ($1, 'playbook_on_start', 'Playbook started', '', 'ok', 'Starting playbook execution', NOW())
+          INSERT INTO job_events (job_id, event_type, message, timestamp)
+          VALUES ($1, 'playbook_on_start', 'Starting playbook execution', NOW())
         `, [result.rows[0].id]);
 
         setTimeout(async () => {
           try {
             await pool.query(
-              `UPDATE jobs SET status = 'successful', finished_at = NOW() WHERE id = $1`,
+              `UPDATE jobs SET status = 'success', finished_at = NOW() WHERE id = $1`,
               [result.rows[0].id]
             );
 
             await pool.query(`
-              INSERT INTO job_events (job_id, event_type, task, host, status, message, created_at)
-              VALUES ($1, 'playbook_on_stats', 'Playbook completed', '', 'ok', 'Playbook execution completed successfully', NOW())
+              INSERT INTO job_events (job_id, event_type, message, timestamp)
+              VALUES ($1, 'playbook_on_stats', 'Playbook execution completed successfully', NOW())
             `, [result.rows[0].id]);
           } catch (err) {
             console.error('Job completion error:', err);
@@ -110,7 +108,7 @@ router.post('/', requireAuth, async (req, res) => {
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      `UPDATE jobs SET status = 'canceled', finished_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE jobs SET status = 'cancelled', finished_at = NOW() WHERE id = $1 RETURNING *`,
       [req.params.id]
     );
 
@@ -128,7 +126,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
 router.get('/:id/events', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM job_events WHERE job_id = $1 ORDER BY created_at',
+      'SELECT * FROM job_events WHERE job_id = $1 ORDER BY timestamp',
       [req.params.id]
     );
     res.json(result.rows);
