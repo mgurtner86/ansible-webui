@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Frontend - React Application
   web:
     build:
       context: .
@@ -13,7 +14,48 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    depends_on:
+      - backend
+      - redis
+
+  # Backend - Ansible Job Worker
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ansible-tower-backend
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Redis - Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: ansible-tower-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
