@@ -22,7 +22,7 @@ async function processJob(job) {
     );
 
     const jobData = await pool.query(
-      `SELECT j.*, t.*, p.content as playbook_content, p.file_path
+      `SELECT j.*, t.*, p.content as playbook_content, p.name as playbook_name
        FROM jobs j
        JOIN templates t ON j.template_id = t.id
        JOIN playbooks p ON t.playbook_id = p.id
