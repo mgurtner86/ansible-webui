@@ -1,16 +1,18 @@
 import { Worker } from 'bullmq';
-import { createClient } from '@supabase/supabase-js';
+import pg from 'pg';
 import Redis from 'ioredis';
-import { spawn } from 'child_process';
-import { writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const { Pool } = pg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://ansible:ansible_password@postgres:5432/ansible_tower',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
 const connection = new Redis({
   host: process.env.REDIS_HOST || 'redis',
@@ -19,49 +21,71 @@ const connection = new Redis({
 });
 
 console.log('🚀 Ansible Worker Service starting...');
-console.log(`📡 Supabase URL: ${supabaseUrl}`);
+console.log(`📡 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Using default connection'}`);
 console.log(`📦 Redis: ${process.env.REDIS_HOST || 'redis'}:${process.env.REDIS_PORT || 6379}`);
+
+pool.on('connect', () => {
+  console.log('✅ Connected to PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ PostgreSQL connection error:', err);
+});
 
 const worker = new Worker(
   'ansible-jobs',
   async (job) => {
     console.log(`🔄 Processing job ${job.data.job_id}`);
 
+    const client = await pool.connect();
+
     try {
       const { job_id, template_id, extra_vars, limit, tags } = job.data;
 
+      await client.query('BEGIN');
+
       // Update job status to running
-      await supabase
-        .from('jobs')
-        .update({
-          status: 'running',
-          started_at: new Date().toISOString()
-        })
-        .eq('id', job_id);
+      await client.query(
+        'UPDATE jobs SET status = $1, started_at = NOW() WHERE id = $2',
+        ['running', job_id]
+      );
 
       // Create job started event
-      await supabase.from('job_events').insert({
-        job_id,
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        event_type: 'job_started',
-        message: 'Job execution started',
-        raw_json: { template_id, extra_vars, limit, tags }
-      });
+      await client.query(
+        `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
+         VALUES ($1, NOW(), $2, $3, $4, $5)`,
+        [
+          job_id,
+          'info',
+          'job_started',
+          'Job execution started',
+          JSON.stringify({ template_id, extra_vars, limit, tags })
+        ]
+      );
 
       // Get template details
-      const { data: template } = await supabase
-        .from('templates')
-        .select('*, playbook:playbooks(*), inventory:inventories(*)')
-        .eq('id', template_id)
-        .single();
+      const templateResult = await client.query(
+        `SELECT
+          t.*,
+          p.name as playbook_name,
+          p.file_path as playbook_path,
+          i.name as inventory_name,
+          i.content_or_ref as inventory_content
+         FROM templates t
+         JOIN playbooks p ON t.playbook_id = p.id
+         JOIN inventories i ON t.inventory_id = i.id
+         WHERE t.id = $1`,
+        [template_id]
+      );
 
-      if (!template) {
+      if (templateResult.rows.length === 0) {
         throw new Error('Template not found');
       }
 
-      // Simulate Ansible execution (replace with real ansible-runner in production)
-      await simulateAnsibleExecution(job_id, template, extra_vars, limit, tags);
+      const template = templateResult.rows[0];
+
+      // Simulate Ansible execution
+      await simulateAnsibleExecution(client, job_id, template, extra_vars, limit, tags);
 
       // Update job status to success
       const summary = {
@@ -74,59 +98,65 @@ const worker = new Worker(
         ignored: 0
       };
 
-      await supabase
-        .from('jobs')
-        .update({
-          status: 'success',
-          finished_at: new Date().toISOString(),
-          return_code: 0,
-          summary
-        })
-        .eq('id', job_id);
+      await client.query(
+        'UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2, summary = $3 WHERE id = $4',
+        ['success', 0, JSON.stringify(summary), job_id]
+      );
 
       // Create job completed event
-      await supabase.from('job_events').insert({
-        job_id,
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        event_type: 'job_completed',
-        message: 'Job execution completed successfully',
-        raw_json: { summary }
-      });
+      await client.query(
+        `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
+         VALUES ($1, NOW(), $2, $3, $4, $5)`,
+        [
+          job_id,
+          'info',
+          'job_completed',
+          'Job execution completed successfully',
+          JSON.stringify({ summary })
+        ]
+      );
+
+      await client.query('COMMIT');
 
       console.log(`✅ Job ${job_id} completed successfully`);
       return { success: true, job_id };
 
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error(`❌ Job ${job.data.job_id} failed:`, error);
 
-      // Update job status to failed
-      await supabase
-        .from('jobs')
-        .update({
-          status: 'failed',
-          finished_at: new Date().toISOString(),
-          return_code: 1
-        })
-        .eq('id', job.data.job_id);
+      try {
+        // Update job status to failed
+        await client.query(
+          'UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2 WHERE id = $3',
+          ['failed', 1, job.data.job_id]
+        );
 
-      // Create job failed event
-      await supabase.from('job_events').insert({
-        job_id: job.data.job_id,
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        event_type: 'job_failed',
-        message: error.message,
-        raw_json: { error: error.message }
-      });
+        // Create job failed event
+        await client.query(
+          `INSERT INTO job_events (job_id, timestamp, level, event_type, message, raw_json)
+           VALUES ($1, NOW(), $2, $3, $4, $5)`,
+          [
+            job.data.job_id,
+            'error',
+            'job_failed',
+            error.message,
+            JSON.stringify({ error: error.message })
+          ]
+        );
+      } catch (updateError) {
+        console.error('Failed to update job failure status:', updateError);
+      }
 
       throw error;
+    } finally {
+      client.release();
     }
   },
   { connection }
 );
 
-async function simulateAnsibleExecution(jobId, template, extraVars, limit, tags) {
+async function simulateAnsibleExecution(client, jobId, template, extraVars, limit, tags) {
   const tasks = [
     'Gathering Facts',
     'Install packages',
@@ -141,20 +171,23 @@ async function simulateAnsibleExecution(jobId, template, extraVars, limit, tags)
 
     const isChanged = Math.random() > 0.5;
 
-    await supabase.from('job_events').insert({
-      job_id: jobId,
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      host: 'localhost',
-      task,
-      event_type: isChanged ? 'runner_on_ok' : 'runner_on_skipped',
-      message: isChanged ? `Task completed: ${task}` : `Task skipped: ${task}`,
-      raw_json: {
-        changed: isChanged,
-        task_number: index + 1,
-        total_tasks: tasks.length
-      }
-    });
+    await client.query(
+      `INSERT INTO job_events (job_id, timestamp, level, host, task, event_type, message, raw_json)
+       VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7)`,
+      [
+        jobId,
+        'info',
+        'localhost',
+        task,
+        isChanged ? 'runner_on_ok' : 'runner_on_skipped',
+        isChanged ? `Task completed: ${task}` : `Task skipped: ${task}`,
+        JSON.stringify({
+          changed: isChanged,
+          task_number: index + 1,
+          total_tasks: tasks.length
+        })
+      ]
+    );
 
     console.log(`  ⚙️  [${index + 1}/${tasks.length}] ${task} - ${isChanged ? 'changed' : 'skipped'}`);
   }
@@ -179,5 +212,14 @@ process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM received, closing worker...');
   await worker.close();
   await connection.quit();
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, closing worker...');
+  await worker.close();
+  await connection.quit();
+  await pool.end();
   process.exit(0);
 });

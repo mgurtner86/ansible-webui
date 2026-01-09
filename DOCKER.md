@@ -2,11 +2,12 @@
 
 ## Architektur
 
-Das System besteht aus drei Services:
+Das System besteht aus vier Services:
 
-1. **Frontend (web)**: React-basiertes UI auf nginx (Port 3000)
-2. **Backend (backend)**: Node.js Worker für Ansible-Job-Ausführung
-3. **Redis**: Job Queue und Cache (Port 6379)
+1. **PostgreSQL**: PostgreSQL 16 Datenbank (Port 5432)
+2. **Frontend (web)**: React-basiertes UI auf nginx (Port 3000)
+3. **Backend (backend)**: Node.js Worker für Ansible-Job-Ausführung
+4. **Redis**: Job Queue und Cache (Port 6379)
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────┐
@@ -16,7 +17,7 @@ Das System besteht aus drei Services:
                             │                   │
                             ▼                   │
                      ┌──────────────┐          │
-                     │   Supabase   │          │
+                     │  PostgreSQL  │          │
                      │   Database   │◀─────────┤
                      └──────────────┘          │
                             ▲                   │
@@ -29,18 +30,24 @@ Das System besteht aus drei Services:
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Supabase Account und Project
+- Keine externen Dienste erforderlich (alles läuft lokal)
 
 ## Schnellstart
 
 ### 1. Environment-Variablen konfigurieren
 
-Stellen Sie sicher, dass die `.env` Datei im Root-Verzeichnis existiert:
+Die `.env` Datei ist bereits konfiguriert mit Standard-Werten:
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
+DATABASE_URL=postgresql://ansible:ansible_password@postgres:5432/ansible_tower
+REDIS_HOST=redis
+REDIS_PORT=6379
+POSTGRES_DB=ansible_tower
+POSTGRES_USER=ansible
+POSTGRES_PASSWORD=ansible_password
 ```
+
+**WICHTIG**: Ändern Sie diese Werte für Produktionsumgebungen!
 
 ### 2. Services starten
 
@@ -58,9 +65,41 @@ docker-compose logs -f backend
 ### 3. Anwendung aufrufen
 
 - **Frontend**: http://localhost:3000
+- **PostgreSQL**: localhost:5432 (Datenbank: ansible_tower)
 - **Redis**: localhost:6379 (für Debugging)
 
+**Standard-Login**:
+- Email: `admin@ansible-tower.local`
+- Passwort: `admin123`
+
 ## Service-Details
+
+### PostgreSQL (postgres)
+
+**Port**: 5432
+**Image**: postgres:16-alpine
+**Volume**: `postgres-data` (persistente Speicherung)
+**Database**: ansible_tower
+
+Die PostgreSQL-Datenbank:
+- Automatische Schema-Initialisierung beim ersten Start
+- Vollständiges Datenmodell für Ansible Tower
+- Seed-Daten mit Admin-User und Beispieldaten
+- Health-Check für abhängige Services
+
+**Datenbank-Zugriff**:
+```bash
+# Mit psql verbinden
+docker exec -it ansible-tower-postgres psql -U ansible -d ansible_tower
+
+# Tabellen anzeigen
+\dt
+
+# Sample Query
+SELECT * FROM users;
+```
+
+**Schema-Details**: Siehe `database/init/01_schema.sql` und `database/init/02_seed_data.sql`
 
 ### Frontend (web)
 
@@ -76,14 +115,15 @@ Der Frontend-Service baut die React-Anwendung und serviert sie über nginx mit:
 
 ### Backend (backend)
 
-**Technologie**: Node.js + BullMQ + Ansible
+**Technologie**: Node.js + PostgreSQL + BullMQ + Ansible
 **Dockerfile**: `./backend/Dockerfile`
 
 Der Backend-Worker:
 - Verarbeitet Jobs aus der Redis-Queue
 - Simuliert Ansible-Ausführungen (oder führt echte Ansible-Playbooks aus)
-- Aktualisiert Job-Status in Supabase
+- Aktualisiert Job-Status in PostgreSQL
 - Erstellt Job-Events für Live-Monitoring
+- Direkte PostgreSQL-Verbindung mit Connection Pooling
 
 ### Redis
 
@@ -113,6 +153,7 @@ docker-compose restart backend
 
 # In Container einsteigen
 docker exec -it ansible-tower-backend sh
+docker exec -it ansible-tower-postgres psql -U ansible -d ansible_tower
 docker exec -it ansible-tower-redis redis-cli
 
 # Resource-Nutzung anzeigen
@@ -266,6 +307,26 @@ docker-compose logs --tail=100 backend
 
 ## Backup & Wiederherstellung
 
+### PostgreSQL-Datenbank sichern
+
+```bash
+# Vollständiges Backup erstellen
+docker exec -t ansible-tower-postgres pg_dump -U ansible ansible_tower > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Backup mit Kompression
+docker exec -t ansible-tower-postgres pg_dump -U ansible ansible_tower | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+
+# Wiederherstellen
+cat backup.sql | docker exec -i ansible-tower-postgres psql -U ansible -d ansible_tower
+
+# Oder mit Kompression
+gunzip -c backup.sql.gz | docker exec -i ansible-tower-postgres psql -U ansible -d ansible_tower
+
+# Datenbank neu erstellen (wenn nötig)
+docker exec -it ansible-tower-postgres psql -U ansible -d postgres -c "DROP DATABASE IF EXISTS ansible_tower;"
+docker exec -it ansible-tower-postgres psql -U ansible -d postgres -c "CREATE DATABASE ansible_tower;"
+```
+
 ### Redis-Daten sichern
 
 ```bash
@@ -278,6 +339,31 @@ docker cp ansible-tower-redis:/data/dump.rdb ./backup/
 # Wiederherstellen
 docker cp ./backup/dump.rdb ansible-tower-redis:/data/
 docker-compose restart redis
+```
+
+### Automatisches Backup-Script
+
+```bash
+#!/bin/bash
+# backup.sh
+BACKUP_DIR="./backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+
+# PostgreSQL Backup
+docker exec -t ansible-tower-postgres pg_dump -U ansible ansible_tower | gzip > "$BACKUP_DIR/postgres_$DATE.sql.gz"
+
+# Redis Backup
+docker exec ansible-tower-redis redis-cli BGSAVE
+sleep 2
+docker cp ansible-tower-redis:/data/dump.rdb "$BACKUP_DIR/redis_$DATE.rdb"
+
+echo "Backup completed: $DATE"
+
+# Alte Backups löschen (älter als 30 Tage)
+find $BACKUP_DIR -name "*.sql.gz" -mtime +30 -delete
+find $BACKUP_DIR -name "*.rdb" -mtime +30 -delete
 ```
 
 ## Skalierung
