@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Calendar, X } from 'lucide-react';
+import { Plus, Calendar, X, Trash2 } from 'lucide-react';
 
 export default function Schedules() {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -59,6 +59,17 @@ export default function Schedules() {
     } catch (error) {
       console.error('Failed to create schedule:', error);
       alert('Failed to create schedule');
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    try {
+      await api.schedules.delete(id);
+      await loadSchedules();
+    } catch (error) {
+      console.error('Failed to delete schedule:', error);
+      alert('Failed to delete schedule');
     }
   }
 
@@ -194,7 +205,7 @@ export default function Schedules() {
           {schedules.map((schedule) => (
             <div key={schedule.id} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
+                <div className="flex items-start space-x-3 flex-1">
                   <Calendar className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{schedule.name}</h3>
@@ -207,6 +218,13 @@ export default function Schedules() {
                     </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => handleDelete(schedule.id, schedule.name)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete schedule"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}

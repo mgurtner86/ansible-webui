@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Key, X } from 'lucide-react';
+import { Plus, Key, X, Trash2 } from 'lucide-react';
 
 export default function Credentials() {
   const [credentials, setCredentials] = useState<any[]>([]);
@@ -50,6 +50,17 @@ export default function Credentials() {
     } catch (error) {
       console.error('Failed to create credential:', error);
       alert('Failed to create credential');
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    try {
+      await api.credentials.delete(id);
+      await loadCredentials();
+    } catch (error) {
+      console.error('Failed to delete credential:', error);
+      alert('Failed to delete credential');
     }
   }
 
@@ -190,7 +201,7 @@ export default function Credentials() {
           {credentials.map((credential) => (
             <div key={credential.id} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
+                <div className="flex items-start space-x-3 flex-1">
                   <Key className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{credential.name}</h3>
@@ -202,6 +213,13 @@ export default function Credentials() {
                     </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => handleDelete(credential.id, credential.name)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete credential"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}

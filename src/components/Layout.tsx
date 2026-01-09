@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Projects', path: '/projects', icon: FolderGit2 },
+    { name: 'Playbooks', path: '/playbooks', icon: FolderGit2 },
     { name: 'Inventories', path: '/inventories', icon: Server },
     { name: 'Templates', path: '/templates', icon: FileCode },
     { name: 'Jobs', path: '/jobs', icon: PlayCircle },

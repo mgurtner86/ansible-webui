@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Projects from './pages/Projects';
+import Playbooks from './pages/Playbooks';
 import Inventories from './pages/Inventories';
 import Templates from './pages/Templates';
 import Jobs from './pages/Jobs';
@@ -51,10 +51,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/projects"
+        path="/playbooks"
         element={
           <ProtectedRoute>
-            <Projects />
+            <Playbooks />
           </ProtectedRoute>
         }
       />

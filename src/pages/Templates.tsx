@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Play, X } from 'lucide-react';
+import { Plus, Play, X, Trash2 } from 'lucide-react';
 import type { Template } from '../types';
 
 export default function Templates() {
@@ -42,16 +42,10 @@ export default function Templates() {
 
   async function loadProjects() {
     try {
-      const data = await api.projects.list();
-      const playbooks = await Promise.all(
-        data.map(async (project: any) => {
-          const pbs = await api.projects.getPlaybooks(project.id);
-          return pbs.map((pb: any) => ({ ...pb, project_name: project.name }));
-        })
-      );
-      setProjects(playbooks.flat());
+      const data = await api.playbooks.list();
+      setProjects(data);
     } catch (error) {
-      console.error('Failed to load projects:', error);
+      console.error('Failed to load playbooks:', error);
     }
   }
 
@@ -101,6 +95,17 @@ export default function Templates() {
       alert('Job launched successfully!');
     } catch (error) {
       console.error('Failed to launch template:', error);
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    try {
+      await api.templates.delete(id);
+      await loadTemplates();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template');
     }
   }
 
@@ -174,7 +179,7 @@ export default function Templates() {
                     <option value="">Select a playbook...</option>
                     {projects.map((playbook: any) => (
                       <option key={playbook.id} value={playbook.id}>
-                        {playbook.project_name} - {playbook.name}
+                        {playbook.name}
                       </option>
                     ))}
                   </select>
@@ -282,13 +287,22 @@ export default function Templates() {
                     <span>Inventory: {template.inventory_name}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleLaunch(template.id)}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Launch
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleLaunch(template.id)}
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Launch
+                  </button>
+                  <button
+                    onClick={() => handleDelete(template.id, template.name)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete template"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

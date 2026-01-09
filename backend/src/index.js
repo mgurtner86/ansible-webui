@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { pool } from './db/index.js';
 
 import authRoutes from './routes/auth.js';
-import projectsRoutes from './routes/projects.js';
+import playbooksRoutes from './routes/playbooks.js';
 import inventoriesRoutes from './routes/inventories.js';
 import templatesRoutes from './routes/templates.js';
 import jobsRoutes from './routes/jobs.js';
@@ -51,7 +51,7 @@ const requireAuth = (req, res, next) => {
 };
 
 app.use('/api/auth', authRoutes);
-app.use('/api/projects', requireAuth, projectsRoutes);
+app.use('/api/playbooks', requireAuth, playbooksRoutes);
 app.use('/api/inventories', requireAuth, inventoriesRoutes);
 app.use('/api/templates', requireAuth, templatesRoutes);
 app.use('/api/jobs', requireAuth, jobsRoutes);

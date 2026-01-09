@@ -38,11 +38,10 @@ CREATE TABLE IF NOT EXISTS projects (
 -- Playbooks table
 CREATE TABLE IF NOT EXISTS playbooks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
-    content TEXT,
+    content TEXT NOT NULL,
     description TEXT,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -205,4 +204,4 @@ CREATE INDEX idx_job_events_job_id ON job_events(job_id);
 CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
 CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
 CREATE INDEX idx_hosts_inventory_id ON hosts(inventory_id);
-CREATE INDEX idx_playbooks_project_id ON playbooks(project_id);
+CREATE INDEX idx_playbooks_user_id ON playbooks(user_id);

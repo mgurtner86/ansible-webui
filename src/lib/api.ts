@@ -34,14 +34,12 @@ export const api = {
     getSession: () => request('/auth/session'),
   },
 
-  projects: {
-    list: () => request('/projects'),
-    get: (id: string) => request(`/projects/${id}`),
-    create: (data: any) => request('/projects', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: string) => request(`/projects/${id}`, { method: 'DELETE' }),
-    sync: (id: string) => request(`/projects/${id}/sync`, { method: 'POST' }),
-    getPlaybooks: (id: string) => request(`/projects/${id}/playbooks`),
+  playbooks: {
+    list: () => request('/playbooks'),
+    get: (id: string) => request(`/playbooks/${id}`),
+    create: (data: any) => request('/playbooks', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => request(`/playbooks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`/playbooks/${id}`, { method: 'DELETE' }),
   },
 
   inventories: {
