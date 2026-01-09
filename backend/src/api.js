@@ -70,7 +70,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     await pool.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      'UPDATE users SET last_login_at = NOW() WHERE id = $1',
       [user.id]
     );
 
@@ -135,10 +135,10 @@ app.get('/api/auth/session', async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, username } = req.body;
+    const { email, password, full_name } = req.body;
 
-    if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, password, and username are required' });
+    if (!email || !password || !full_name) {
+      return res.status(400).json({ error: 'Email, password, and full name are required' });
     }
 
     const existingUser = await pool.query(
@@ -153,10 +153,10 @@ app.post('/api/auth/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, role, mfa_enabled, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
-       RETURNING id, username, email, role, mfa_enabled, created_at`,
-      [username, email, hashedPassword, 'viewer', false]
+      `INSERT INTO users (full_name, email, password_hash, role, mfa_enabled, is_active, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       RETURNING id, full_name, email, role, mfa_enabled, is_active, created_at, last_login_at`,
+      [full_name, email, hashedPassword, 'viewer', false, true]
     );
 
     const user = result.rows[0];

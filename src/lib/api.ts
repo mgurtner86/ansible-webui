@@ -2,12 +2,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface User {
   id: string;
-  username: string;
+  full_name: string;
   email: string;
   role: 'admin' | 'manager' | 'operator' | 'viewer';
   mfa_enabled: boolean;
+  is_active: boolean;
   created_at: string;
-  last_login: string | null;
+  last_login_at: string | null;
 }
 
 interface Session {
@@ -53,10 +54,10 @@ class ApiClient {
     });
   }
 
-  async register(email: string, password: string, username: string): Promise<AuthResponse> {
+  async register(email: string, password: string, fullName: string): Promise<AuthResponse> {
     return this.request<AuthResponse>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, username }),
+      body: JSON.stringify({ email, password, full_name: fullName }),
     });
   }
 

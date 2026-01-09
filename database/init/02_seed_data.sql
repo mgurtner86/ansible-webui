@@ -9,15 +9,8 @@
 -- ===========================
 -- DEFAULT ADMIN USER
 -- ===========================
--- Password: admin123 (change this in production!)
-INSERT INTO users (email, password_hash, full_name, role, is_active)
-VALUES (
-  'admin@ansible-tower.local',
-  crypt('admin123', gen_salt('bf')),
-  'System Administrator',
-  'admin',
-  true
-) ON CONFLICT (email) DO NOTHING;
+-- Note: Admin user is created by backend seed script with bcrypt-hashed password
+-- This ensures compatibility between Node.js bcrypt and the database
 
 -- ===========================
 -- ROLE PERMISSIONS MATRIX

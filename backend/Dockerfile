@@ -16,7 +16,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose health check port
 EXPOSE 3001
 
-CMD ["npm", "start"]
+CMD ["./start.sh"]
