@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Key } from 'lucide-react';
+import { Plus, Key, X } from 'lucide-react';
 
 export default function Credentials() {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    type: 'ssh',
+    name: '',
+    description: '',
+    secret: {
+      username: '',
+      password: '',
+      privateKey: '',
+    },
+    scope: 'user',
+  });
 
   useEffect(() => {
     loadCredentials();
@@ -19,6 +31,25 @@ export default function Credentials() {
       console.error('Failed to load credentials:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api.credentials.create(formData);
+      await loadCredentials();
+      setShowForm(false);
+      setFormData({
+        type: 'ssh',
+        name: '',
+        description: '',
+        secret: { username: '', password: '', privateKey: '' },
+        scope: 'user',
+      });
+    } catch (error) {
+      console.error('Failed to create credential:', error);
+      alert('Failed to create credential');
     }
   }
 
@@ -40,11 +71,120 @@ export default function Credentials() {
             <h1 className="text-2xl font-bold text-gray-900">Credentials</h1>
             <p className="text-gray-600 mt-1">Secure credential storage for SSH, API keys, and more</p>
           </div>
-          <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Credential
           </button>
         </div>
+
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Create New Credential</h2>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ssh">SSH</option>
+                    <option value="vault">Vault</option>
+                    <option value="api_token">API Token</option>
+                    <option value="cloud">Cloud</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={2}
+                  />
+                </div>
+                {formData.type === 'ssh' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                      <input
+                        type="text"
+                        value={formData.secret.username}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          secret: { ...formData.secret, username: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={formData.secret.password}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          secret: { ...formData.secret, password: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Private Key</label>
+                      <textarea
+                        value={formData.secret.privateKey}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          secret: { ...formData.secret, privateKey: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                        rows={4}
+                        placeholder="-----BEGIN RSA PRIVATE KEY-----"
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4">
           {credentials.map((credential) => (

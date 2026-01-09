@@ -1,15 +1,32 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Play } from 'lucide-react';
+import { Plus, Play, X } from 'lucide-react';
 import type { Template } from '../types';
 
 export default function Templates() {
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [inventories, setInventories] = useState<any[]>([]);
+  const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    playbook_id: '',
+    inventory_id: '',
+    credential_id: '',
+    forks: 5,
+    verbosity: 0,
+    become: false,
+  });
 
   useEffect(() => {
     loadTemplates();
+    loadProjects();
+    loadInventories();
+    loadCredentials();
   }, []);
 
   async function loadTemplates() {
@@ -20,6 +37,61 @@ export default function Templates() {
       console.error('Failed to load templates:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadProjects() {
+    try {
+      const data = await api.projects.list();
+      const playbooks = await Promise.all(
+        data.map(async (project: any) => {
+          const pbs = await api.projects.getPlaybooks(project.id);
+          return pbs.map((pb: any) => ({ ...pb, project_name: project.name }));
+        })
+      );
+      setProjects(playbooks.flat());
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+    }
+  }
+
+  async function loadInventories() {
+    try {
+      const data = await api.inventories.list();
+      setInventories(data);
+    } catch (error) {
+      console.error('Failed to load inventories:', error);
+    }
+  }
+
+  async function loadCredentials() {
+    try {
+      const data = await api.credentials.list();
+      setCredentials(data);
+    } catch (error) {
+      console.error('Failed to load credentials:', error);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api.templates.create(formData);
+      await loadTemplates();
+      setShowForm(false);
+      setFormData({
+        name: '',
+        description: '',
+        playbook_id: '',
+        inventory_id: '',
+        credential_id: '',
+        forks: 5,
+        verbosity: 0,
+        become: false,
+      });
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      alert('Failed to create template');
     }
   }
 
@@ -50,11 +122,152 @@ export default function Templates() {
             <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
             <p className="text-gray-600 mt-1">Job templates for running playbooks</p>
           </div>
-          <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Template
           </button>
         </div>
+
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Create New Template</h2>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Playbook</label>
+                  <select
+                    required
+                    value={formData.playbook_id}
+                    onChange={(e) => setFormData({ ...formData, playbook_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a playbook...</option>
+                    {projects.map((playbook: any) => (
+                      <option key={playbook.id} value={playbook.id}>
+                        {playbook.project_name} - {playbook.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Inventory</label>
+                  <select
+                    required
+                    value={formData.inventory_id}
+                    onChange={(e) => setFormData({ ...formData, inventory_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select an inventory...</option>
+                    {inventories.map((inventory) => (
+                      <option key={inventory.id} value={inventory.id}>
+                        {inventory.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Credential (Optional)</label>
+                  <select
+                    value={formData.credential_id}
+                    onChange={(e) => setFormData({ ...formData, credential_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No credential</option>
+                    {credentials.map((credential) => (
+                      <option key={credential.id} value={credential.id}>
+                        {credential.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Forks</label>
+                    <input
+                      type="number"
+                      value={formData.forks}
+                      onChange={(e) => setFormData({ ...formData, forks: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      min="1"
+                      max="100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Verbosity</label>
+                    <select
+                      value={formData.verbosity}
+                      onChange={(e) => setFormData({ ...formData, verbosity: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="0">0 (Normal)</option>
+                      <option value="1">1 (-v)</option>
+                      <option value="2">2 (-vv)</option>
+                      <option value="3">3 (-vvv)</option>
+                      <option value="4">4 (-vvvv)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="become"
+                    checked={formData.become}
+                    onChange={(e) => setFormData({ ...formData, become: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="become" className="ml-2 text-sm text-gray-700">
+                    Enable privilege escalation (become)
+                  </label>
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4">
           {templates.map((template) => (

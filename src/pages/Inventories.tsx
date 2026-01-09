@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Server } from 'lucide-react';
+import { Plus, Server, X } from 'lucide-react';
 import type { Inventory } from '../types';
 
 export default function Inventories() {
   const [inventories, setInventories] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    source: 'static',
+    content_or_ref: '',
+    variables: {},
+  });
 
   useEffect(() => {
     loadInventories();
@@ -20,6 +28,25 @@ export default function Inventories() {
       console.error('Failed to load inventories:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api.inventories.create(formData);
+      await loadInventories();
+      setShowForm(false);
+      setFormData({
+        name: '',
+        description: '',
+        source: 'static',
+        content_or_ref: '',
+        variables: {},
+      });
+    } catch (error) {
+      console.error('Failed to create inventory:', error);
+      alert('Failed to create inventory');
     }
   }
 
@@ -41,11 +68,90 @@ export default function Inventories() {
             <h1 className="text-2xl font-bold text-gray-900">Inventories</h1>
             <p className="text-gray-600 mt-1">Host inventories for your infrastructure</p>
           </div>
-          <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Inventory
           </button>
         </div>
+
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Create New Inventory</h2>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                  <select
+                    value={formData.source}
+                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="static">Static</option>
+                    <option value="git">Git</option>
+                    <option value="dynamic">Dynamic</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.source === 'git' ? 'Git URL' : 'Content'}
+                  </label>
+                  <textarea
+                    value={formData.content_or_ref}
+                    onChange={(e) => setFormData({ ...formData, content_or_ref: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    rows={4}
+                    placeholder={formData.source === 'git' ? 'https://github.com/user/inventory.git' : '[webservers]\nweb1.example.com\nweb2.example.com'}
+                  />
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {inventories.map((inventory) => (
