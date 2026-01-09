@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Key, X, Trash2 } from 'lucide-react';
+import { Plus, Key, X, Trash2, Pencil } from 'lucide-react';
 
 export default function Credentials() {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     type: 'ssh',
     name: '',
@@ -34,22 +35,43 @@ export default function Credentials() {
     }
   }
 
+  function handleEdit(credential: any) {
+    setEditingId(credential.id);
+    setFormData({
+      type: credential.type,
+      name: credential.name,
+      description: credential.description || '',
+      secret: { username: '', password: '', privateKey: '' },
+      scope: credential.scope,
+    });
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      type: 'ssh',
+      name: '',
+      description: '',
+      secret: { username: '', password: '', privateKey: '' },
+      scope: 'user',
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await api.credentials.create(formData);
+      if (editingId) {
+        await api.credentials.update(editingId, formData);
+      } else {
+        await api.credentials.create(formData);
+      }
       await loadCredentials();
-      setShowForm(false);
-      setFormData({
-        type: 'ssh',
-        name: '',
-        description: '',
-        secret: { username: '', password: '', privateKey: '' },
-        scope: 'user',
-      });
+      handleCancel();
     } catch (error) {
-      console.error('Failed to create credential:', error);
-      alert('Failed to create credential');
+      console.error('Failed to save credential:', error);
+      alert('Failed to save credential');
     }
   }
 
@@ -95,9 +117,11 @@ export default function Credentials() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Create New Credential</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {editingId ? 'Edit Credential' : 'Create New Credential'}
+                </h2>
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCancel}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -180,7 +204,7 @@ export default function Credentials() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
                     Cancel
@@ -189,7 +213,7 @@ export default function Credentials() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Create
+                    {editingId ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>
@@ -213,13 +237,22 @@ export default function Credentials() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(credential.id, credential.name)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete credential"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(credential)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit credential"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(credential.id, credential.name)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete credential"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

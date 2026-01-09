@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Calendar, X, Trash2 } from 'lucide-react';
+import { Plus, Calendar, X, Trash2, Pencil } from 'lucide-react';
 
 export default function Schedules() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     template_id: '',
     name: '',
@@ -42,23 +43,45 @@ export default function Schedules() {
     }
   }
 
+  function handleEdit(schedule: any) {
+    setEditingId(schedule.id);
+    setFormData({
+      template_id: schedule.template_id,
+      name: schedule.name,
+      description: schedule.description || '',
+      cron: schedule.cron,
+      timezone: schedule.timezone,
+      enabled: schedule.enabled,
+    });
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      template_id: '',
+      name: '',
+      description: '',
+      cron: '0 0 * * *',
+      timezone: 'UTC',
+      enabled: true,
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await api.schedules.create(formData);
+      if (editingId) {
+        await api.schedules.update(editingId, formData);
+      } else {
+        await api.schedules.create(formData);
+      }
       await loadSchedules();
-      setShowForm(false);
-      setFormData({
-        template_id: '',
-        name: '',
-        description: '',
-        cron: '0 0 * * *',
-        timezone: 'UTC',
-        enabled: true,
-      });
+      handleCancel();
     } catch (error) {
-      console.error('Failed to create schedule:', error);
-      alert('Failed to create schedule');
+      console.error('Failed to save schedule:', error);
+      alert('Failed to save schedule');
     }
   }
 
@@ -104,9 +127,11 @@ export default function Schedules() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Create New Schedule</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {editingId ? 'Edit Schedule' : 'Create New Schedule'}
+                </h2>
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCancel}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -184,7 +209,7 @@ export default function Schedules() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
                     Cancel
@@ -193,7 +218,7 @@ export default function Schedules() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Create
+                    {editingId ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>
@@ -218,13 +243,22 @@ export default function Schedules() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(schedule.id, schedule.name)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete schedule"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(schedule)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit schedule"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(schedule.id, schedule.name)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete schedule"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

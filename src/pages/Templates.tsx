@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Play, X, Trash2 } from 'lucide-react';
+import { Plus, Play, X, Trash2, Pencil } from 'lucide-react';
 import type { Template } from '../types';
 
 export default function Templates() {
@@ -11,6 +11,7 @@ export default function Templates() {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -67,25 +68,49 @@ export default function Templates() {
     }
   }
 
+  function handleEdit(template: Template) {
+    setEditingId(template.id);
+    setFormData({
+      name: template.name,
+      description: template.description || '',
+      playbook_id: template.playbook_id,
+      inventory_id: template.inventory_id,
+      credential_id: template.credential_id || '',
+      forks: template.forks || 5,
+      verbosity: template.verbosity || 0,
+      become: template.become || false,
+    });
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      name: '',
+      description: '',
+      playbook_id: '',
+      inventory_id: '',
+      credential_id: '',
+      forks: 5,
+      verbosity: 0,
+      become: false,
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await api.templates.create(formData);
+      if (editingId) {
+        await api.templates.update(editingId, formData);
+      } else {
+        await api.templates.create(formData);
+      }
       await loadTemplates();
-      setShowForm(false);
-      setFormData({
-        name: '',
-        description: '',
-        playbook_id: '',
-        inventory_id: '',
-        credential_id: '',
-        forks: 5,
-        verbosity: 0,
-        become: false,
-      });
+      handleCancel();
     } catch (error) {
-      console.error('Failed to create template:', error);
-      alert('Failed to create template');
+      console.error('Failed to save template:', error);
+      alert('Failed to save template');
     }
   }
 
@@ -140,9 +165,11 @@ export default function Templates() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Create New Template</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {editingId ? 'Edit Template' : 'Create New Template'}
+                </h2>
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCancel}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -257,7 +284,7 @@ export default function Templates() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
                     Cancel
@@ -266,7 +293,7 @@ export default function Templates() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Create
+                    {editingId ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>
@@ -294,6 +321,13 @@ export default function Templates() {
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Launch
+                  </button>
+                  <button
+                    onClick={() => handleEdit(template)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit template"
+                  >
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(template.id, template.name)}

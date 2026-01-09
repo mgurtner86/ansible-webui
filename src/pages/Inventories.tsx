@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Server, X, Trash2 } from 'lucide-react';
+import { Plus, Server, X, Trash2, Pencil } from 'lucide-react';
 import type { Inventory } from '../types';
 
 export default function Inventories() {
   const [inventories, setInventories] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -31,22 +32,43 @@ export default function Inventories() {
     }
   }
 
+  function handleEdit(inventory: Inventory) {
+    setEditingId(inventory.id);
+    setFormData({
+      name: inventory.name,
+      description: inventory.description || '',
+      source: inventory.source,
+      content_or_ref: inventory.content_or_ref || '',
+      variables: inventory.variables || {},
+    });
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      name: '',
+      description: '',
+      source: 'static',
+      content_or_ref: '',
+      variables: {},
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await api.inventories.create(formData);
+      if (editingId) {
+        await api.inventories.update(editingId, formData);
+      } else {
+        await api.inventories.create(formData);
+      }
       await loadInventories();
-      setShowForm(false);
-      setFormData({
-        name: '',
-        description: '',
-        source: 'static',
-        content_or_ref: '',
-        variables: {},
-      });
+      handleCancel();
     } catch (error) {
-      console.error('Failed to create inventory:', error);
-      alert('Failed to create inventory');
+      console.error('Failed to save inventory:', error);
+      alert('Failed to save inventory');
     }
   }
 
@@ -92,9 +114,11 @@ export default function Inventories() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Create New Inventory</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {editingId ? 'Edit Inventory' : 'Create New Inventory'}
+                </h2>
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCancel}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -147,7 +171,7 @@ export default function Inventories() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
                     Cancel
@@ -156,7 +180,7 @@ export default function Inventories() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Create
+                    {editingId ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>
@@ -171,6 +195,13 @@ export default function Inventories() {
                 <h3 className="text-lg font-semibold text-gray-900 flex-1">{inventory.name}</h3>
                 <div className="flex items-center space-x-2">
                   <Server className="w-5 h-5 text-gray-400" />
+                  <button
+                    onClick={() => handleEdit(inventory)}
+                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Edit inventory"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleDelete(inventory.id, inventory.name)}
                     className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
