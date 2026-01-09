@@ -82,6 +82,24 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 CREATE UNIQUE INDEX idx_role_permissions_role_resource ON role_permissions(role, resource);
 
 -- ===========================
+-- CREDENTIALS TABLE
+-- ===========================
+CREATE TABLE IF NOT EXISTS credentials (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type credential_type NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  encrypted_secret TEXT NOT NULL,
+  scope TEXT DEFAULT 'user',
+  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_credentials_owner_id ON credentials(owner_id);
+CREATE INDEX idx_credentials_type ON credentials(type);
+
+-- ===========================
 -- PROJECTS TABLE
 -- ===========================
 CREATE TABLE IF NOT EXISTS projects (
@@ -169,24 +187,6 @@ CREATE TABLE IF NOT EXISTS groups (
 
 CREATE INDEX idx_groups_inventory_id ON groups(inventory_id);
 CREATE UNIQUE INDEX idx_groups_inventory_name ON groups(inventory_id, name);
-
--- ===========================
--- CREDENTIALS TABLE
--- ===========================
-CREATE TABLE IF NOT EXISTS credentials (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  type credential_type NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  encrypted_secret TEXT NOT NULL,
-  scope TEXT DEFAULT 'user',
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_credentials_owner_id ON credentials(owner_id);
-CREATE INDEX idx_credentials_type ON credentials(type);
 
 -- ===========================
 -- TEMPLATES TABLE
