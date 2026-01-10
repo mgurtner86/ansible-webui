@@ -5,7 +5,14 @@ RUN apk add --no-cache \
     py3-pip \
     ansible \
     git \
-    openssh-client
+    openssh-client \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    openssl-dev
+
+RUN pip3 install --no-cache-dir pywinrm[credssp]
 
 WORKDIR /app
 

@@ -30,6 +30,7 @@ export default function InventoryDetail() {
   const [loading, setLoading] = useState(true);
   const [showHostForm, setShowHostForm] = useState(false);
   const [editingHost, setEditingHost] = useState<Host | null>(null);
+  const [isWindowsHost, setIsWindowsHost] = useState(false);
   const [hostForm, setHostForm] = useState({
     hostname: '',
     vars: {} as Record<string, string>,
@@ -58,6 +59,7 @@ export default function InventoryDetail() {
 
   function handleAddHost() {
     setEditingHost(null);
+    setIsWindowsHost(false);
     setHostForm({
       hostname: '',
       vars: {},
@@ -69,6 +71,8 @@ export default function InventoryDetail() {
 
   function handleEditHost(host: Host) {
     setEditingHost(host);
+    const isWin = host.vars?.ansible_connection === 'winrm';
+    setIsWindowsHost(isWin);
     setHostForm({
       hostname: host.hostname,
       vars: host.vars || {},
@@ -76,6 +80,32 @@ export default function InventoryDetail() {
       enabled: host.enabled,
     });
     setShowHostForm(true);
+  }
+
+  function handleWindowsHostToggle(checked: boolean) {
+    setIsWindowsHost(checked);
+    if (checked) {
+      setHostForm({
+        ...hostForm,
+        vars: {
+          ...hostForm.vars,
+          ansible_connection: 'winrm',
+          ansible_port: '5986',
+          ansible_winrm_transport: 'ntlm',
+          ansible_winrm_server_cert_validation: 'ignore',
+        },
+      });
+    } else {
+      const newVars = { ...hostForm.vars };
+      delete newVars.ansible_connection;
+      delete newVars.ansible_port;
+      delete newVars.ansible_winrm_transport;
+      delete newVars.ansible_winrm_server_cert_validation;
+      setHostForm({
+        ...hostForm,
+        vars: newVars,
+      });
+    }
   }
 
   async function handleSaveHost() {
@@ -178,14 +208,21 @@ export default function InventoryDetail() {
                   <div className="flex items-center space-x-4 flex-1">
                     <Server className="w-5 h-5 text-gray-400" />
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{host.hostname}</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-gray-900">{host.hostname}</span>
+                        {host.vars?.ansible_connection === 'winrm' && (
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Windows</span>
+                        )}
+                      </div>
                       {Object.keys(host.vars || {}).length > 0 && (
                         <div className="text-sm text-gray-500 mt-1">
-                          {Object.entries(host.vars).map(([key, value]) => (
-                            <span key={key} className="mr-3">
-                              {key}: {value}
-                            </span>
-                          ))}
+                          {Object.entries(host.vars)
+                            .filter(([key]) => !key.startsWith('ansible_'))
+                            .map(([key, value]) => (
+                              <span key={key} className="mr-3">
+                                {key}: {value}
+                              </span>
+                            ))}
                         </div>
                       )}
                     </div>
@@ -234,18 +271,85 @@ export default function InventoryDetail() {
                   placeholder="server.example.com or 192.168.1.10"
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="enabled"
-                  checked={hostForm.enabled}
-                  onChange={(e) => setHostForm({ ...hostForm, enabled: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="enabled" className="text-sm font-medium text-gray-700">
-                  Enabled
-                </label>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="enabled"
+                    checked={hostForm.enabled}
+                    onChange={(e) => setHostForm({ ...hostForm, enabled: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="enabled" className="text-sm font-medium text-gray-700">
+                    Enabled
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="windows"
+                    checked={isWindowsHost}
+                    onChange={(e) => handleWindowsHostToggle(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="windows" className="text-sm font-medium text-gray-700">
+                    Windows Host (WinRM)
+                  </label>
+                </div>
               </div>
+              {isWindowsHost && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-blue-800 font-medium">Windows Host Configuration</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">WinRM Port</label>
+                      <input
+                        type="text"
+                        value={hostForm.vars.ansible_port || '5986'}
+                        onChange={(e) => setHostForm({
+                          ...hostForm,
+                          vars: { ...hostForm.vars, ansible_port: e.target.value }
+                        })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">5986 (HTTPS) or 5985 (HTTP)</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Transport</label>
+                      <select
+                        value={hostForm.vars.ansible_winrm_transport || 'ntlm'}
+                        onChange={(e) => setHostForm({
+                          ...hostForm,
+                          vars: { ...hostForm.vars, ansible_winrm_transport: e.target.value }
+                        })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="ntlm">NTLM</option>
+                        <option value="basic">Basic</option>
+                        <option value="kerberos">Kerberos</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="cert-validation"
+                      checked={hostForm.vars.ansible_winrm_server_cert_validation !== 'validate'}
+                      onChange={(e) => setHostForm({
+                        ...hostForm,
+                        vars: {
+                          ...hostForm.vars,
+                          ansible_winrm_server_cert_validation: e.target.checked ? 'ignore' : 'validate'
+                        }
+                      })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="cert-validation" className="text-xs text-gray-700">
+                      Ignore SSL certificate validation (recommended for self-signed certs)
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button

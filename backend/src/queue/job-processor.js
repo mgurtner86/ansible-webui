@@ -83,27 +83,55 @@ async function processJob(job) {
         hosts.push(row.hostname);
         inventoryContent += `${row.hostname}`;
 
-        // Add SSH username if available
+        const hostVars = row.host_vars || {};
+        const isWindows = hostVars.ansible_connection === 'winrm';
+
+        // Add connection type
+        if (hostVars.ansible_connection) {
+          inventoryContent += ` ansible_connection=${hostVars.ansible_connection}`;
+        }
+
+        // Add username
         if (credential?.username) {
           inventoryContent += ` ansible_user=${credential.username}`;
         }
 
-        // Add SSH key or password
-        if (sshKeyPath) {
-          inventoryContent += ` ansible_ssh_private_key_file=${sshKeyPath}`;
-        } else if (credential?.password) {
-          inventoryContent += ` ansible_password=${credential.password}`;
+        // Windows-specific settings
+        if (isWindows) {
+          inventoryContent += ` ansible_port=${hostVars.ansible_port || '5986'}`;
+          inventoryContent += ` ansible_winrm_transport=${hostVars.ansible_winrm_transport || 'ntlm'}`;
+          inventoryContent += ` ansible_winrm_server_cert_validation=${hostVars.ansible_winrm_server_cert_validation || 'ignore'}`;
+
+          if (credential?.password) {
+            inventoryContent += ` ansible_password=${credential.password}`;
+          }
+        } else {
+          // SSH-specific settings for Linux/Unix hosts
+          if (sshKeyPath) {
+            inventoryContent += ` ansible_ssh_private_key_file=${sshKeyPath}`;
+          } else if (credential?.password) {
+            inventoryContent += ` ansible_password=${credential.password}`;
+          }
+
+          // Add become options for Linux/Unix
+          if (credential?.become_method) {
+            inventoryContent += ` ansible_become_method=${credential.become_method}`;
+          }
+          if (credential?.become_username) {
+            inventoryContent += ` ansible_become_user=${credential.become_username}`;
+          }
+          if (credential?.become_password) {
+            inventoryContent += ` ansible_become_password=${credential.become_password}`;
+          }
         }
 
-        // Add become options
-        if (credential?.become_method) {
-          inventoryContent += ` ansible_become_method=${credential.become_method}`;
-        }
-        if (credential?.become_username) {
-          inventoryContent += ` ansible_become_user=${credential.become_username}`;
-        }
-        if (credential?.become_password) {
-          inventoryContent += ` ansible_become_password=${credential.become_password}`;
+        // Add any additional host variables
+        for (const [key, value] of Object.entries(hostVars)) {
+          if (!key.startsWith('ansible_connection') &&
+              !key.startsWith('ansible_port') &&
+              !key.startsWith('ansible_winrm')) {
+            inventoryContent += ` ${key}=${value}`;
+          }
         }
 
         inventoryContent += '\n';
@@ -150,6 +178,8 @@ async function processJob(job) {
       ANSIBLE_HOST_KEY_CHECKING: 'False',
       ANSIBLE_STDOUT_CALLBACK: 'default',
       ANSIBLE_FORCE_COLOR: 'true',
+      ANSIBLE_WINRM_CONNECTION_TIMEOUT: '60',
+      ANSIBLE_WINRM_READ_TIMEOUT: '60',
     };
 
     try {
