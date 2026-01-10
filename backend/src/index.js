@@ -7,12 +7,14 @@ import { pool } from './db/index.js';
 import { startJobWorker } from './queue/job-processor.js';
 
 import authRoutes from './routes/auth.js';
+import projectsRoutes from './routes/projects.js';
 import playbooksRoutes from './routes/playbooks.js';
 import inventoriesRoutes from './routes/inventories.js';
 import templatesRoutes from './routes/templates.js';
 import jobsRoutes from './routes/jobs.js';
 import credentialsRoutes from './routes/credentials.js';
 import schedulesRoutes from './routes/schedules.js';
+import hostsRoutes from './routes/hosts.js';
 
 dotenv.config();
 
@@ -52,12 +54,14 @@ const requireAuth = (req, res, next) => {
 };
 
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', requireAuth, projectsRoutes);
 app.use('/api/playbooks', requireAuth, playbooksRoutes);
 app.use('/api/inventories', requireAuth, inventoriesRoutes);
 app.use('/api/templates', requireAuth, templatesRoutes);
 app.use('/api/jobs', requireAuth, jobsRoutes);
 app.use('/api/credentials', requireAuth, credentialsRoutes);
 app.use('/api/schedules', requireAuth, schedulesRoutes);
+app.use('/api/hosts', requireAuth, hostsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -141,9 +141,6 @@ async function processJob(job) {
       command += ' --become';
     }
 
-    // Add check mode
-    command += ' --check';
-
     // Environment variables for Ansible
     const env = {
       ...process.env,

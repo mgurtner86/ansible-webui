@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
+import InventoryWizard from '../components/InventoryWizard';
 import { Plus, Server, X, Trash2, Pencil } from 'lucide-react';
 import type { Inventory } from '../types';
 
 export default function Inventories() {
   const [inventories, setInventories] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -102,13 +104,23 @@ export default function Inventories() {
             <p className="text-gray-600 mt-1">Host inventories for your infrastructure</p>
           </div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowWizard(true)}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Inventory
           </button>
         </div>
+
+        {showWizard && (
+          <InventoryWizard
+            onClose={() => setShowWizard(false)}
+            onSuccess={() => {
+              setShowWizard(false);
+              loadInventories();
+            }}
+          />
+        )}
 
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
