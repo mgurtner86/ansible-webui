@@ -23,8 +23,7 @@ async function processJob(job) {
 
     const jobData = await pool.query(
       `SELECT j.*, t.*, p.content as playbook_content, p.name as playbook_name,
-              c.ssh_key_data, c.username as ssh_username, c.password as ssh_password,
-              c.become_method, c.become_username, c.become_password, c.type as credential_type
+              c.encrypted_secret, c.type as credential_type
        FROM jobs j
        JOIN templates t ON j.template_id = t.id
        JOIN playbooks p ON t.playbook_id = p.id
@@ -38,6 +37,17 @@ async function processJob(job) {
     }
 
     const data = jobData.rows[0];
+
+    // Decrypt credential if available
+    let credential = null;
+    if (data.encrypted_secret) {
+      try {
+        const decrypted = Buffer.from(data.encrypted_secret, 'base64').toString('utf-8');
+        credential = JSON.parse(decrypted);
+      } catch (error) {
+        console.error('Failed to decrypt credential:', error);
+      }
+    }
 
     const inventoryData = await pool.query(
       `SELECT i.*, h.hostname, h.vars as host_vars
@@ -55,9 +65,9 @@ async function processJob(job) {
 
     // Prepare SSH key if available
     let sshKeyPath = null;
-    if (data.ssh_key_data) {
+    if (credential?.ssh_key_data) {
       sshKeyPath = path.join(tmpDir, 'ssh_key');
-      await fs.writeFile(sshKeyPath, data.ssh_key_data, { mode: 0o600 });
+      await fs.writeFile(sshKeyPath, credential.ssh_key_data, { mode: 0o600 });
     }
 
     // Build inventory with credentials
@@ -65,32 +75,32 @@ async function processJob(job) {
     let inventoryContent = '[all]\n';
     const hosts = [];
 
-    for (const row of inventoryData.rows.slice(1)) {
+    for (const row of inventoryData.rows) {
       if (row.hostname) {
         hosts.push(row.hostname);
         inventoryContent += `${row.hostname}`;
 
         // Add SSH username if available
-        if (data.ssh_username) {
-          inventoryContent += ` ansible_user=${data.ssh_username}`;
+        if (credential?.username) {
+          inventoryContent += ` ansible_user=${credential.username}`;
         }
 
         // Add SSH key or password
         if (sshKeyPath) {
           inventoryContent += ` ansible_ssh_private_key_file=${sshKeyPath}`;
-        } else if (data.ssh_password) {
-          inventoryContent += ` ansible_password=${data.ssh_password}`;
+        } else if (credential?.password) {
+          inventoryContent += ` ansible_password=${credential.password}`;
         }
 
         // Add become options
-        if (data.become_method) {
-          inventoryContent += ` ansible_become_method=${data.become_method}`;
+        if (credential?.become_method) {
+          inventoryContent += ` ansible_become_method=${credential.become_method}`;
         }
-        if (data.become_username) {
-          inventoryContent += ` ansible_become_user=${data.become_username}`;
+        if (credential?.become_username) {
+          inventoryContent += ` ansible_become_user=${credential.become_username}`;
         }
-        if (data.become_password) {
-          inventoryContent += ` ansible_become_password=${data.become_password}`;
+        if (credential?.become_password) {
+          inventoryContent += ` ansible_become_password=${credential.become_password}`;
         }
 
         inventoryContent += '\n';
@@ -104,7 +114,7 @@ async function processJob(job) {
     for (const host of hosts) {
       initialOutput += `  - ${host}\n`;
     }
-    initialOutput += `\nCredential: ${data.ssh_username ? data.ssh_username + '@' : ''}${data.credential_type || 'None'}\n`;
+    initialOutput += `\nCredential: ${credential?.username ? credential.username + '@' : ''}${data.credential_type || 'None'}\n`;
     initialOutput += `SSH Key: ${sshKeyPath ? 'Yes' : 'No'}\n`;
     initialOutput += `\nStarting playbook execution...\n\n`;
 
@@ -164,12 +174,21 @@ async function processJob(job) {
       await pool.query(
         `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2,
          summary = $3 WHERE id = $4`,
-        ['success', 0, JSON.stringify({ hosts: inventoryData.rows.length - 1 }), jobId]
+        ['success', 0, JSON.stringify({ hosts: hosts.length }), jobId]
       );
     } catch (error) {
+      let errorMessage = error.message;
+
+      if (error.stdout) {
+        errorMessage += '\n\nStdout:\n' + error.stdout;
+      }
+      if (error.stderr) {
+        errorMessage += '\n\nStderr:\n' + error.stderr;
+      }
+
       await pool.query(
         'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-        [jobId, 'error', error.message]
+        [jobId, 'error', errorMessage]
       );
 
       await pool.query(
