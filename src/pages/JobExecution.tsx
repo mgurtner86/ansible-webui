@@ -59,7 +59,7 @@ export default function JobExecution() {
       } catch (error) {
         console.error('Failed to poll job:', error);
       }
-    }, 2000);
+    }, 500);
   }
 
   function getStatusIcon() {

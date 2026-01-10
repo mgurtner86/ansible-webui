@@ -1,11 +1,8 @@
 import { Worker } from 'bullmq';
 import { pool } from '../db/index.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
-
-const execAsync = promisify(exec);
 
 const connection = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -139,14 +136,32 @@ async function processJob(job) {
     }
     await fs.writeFile(inventoryPath, inventoryContent);
 
+    // Determine if this is a Windows job
+    const isWindowsJob = inventoryData.rows.some(row => {
+      const hostVars = row.host_vars || {};
+      return hostVars.ansible_connection === 'winrm';
+    });
+
     // Output host list
     let initialOutput = `PLAY [${data.playbook_name}] *********************************************************\n\n`;
     initialOutput += `Target Hosts (${hosts.length}):\n`;
     for (const host of hosts) {
       initialOutput += `  - ${host}\n`;
     }
-    initialOutput += `\nCredential: ${credential?.username ? credential.username + '@' : ''}${data.credential_type || 'None'}\n`;
-    initialOutput += `SSH Key: ${sshKeyPath ? 'Yes' : 'No'}\n`;
+
+    // Show appropriate credential info based on connection type
+    if (credential?.username) {
+      if (isWindowsJob) {
+        initialOutput += `\nCredential: ${credential.username}@winrm\n`;
+        initialOutput += `Connection: WinRM\n`;
+      } else {
+        initialOutput += `\nCredential: ${credential.username}@ssh\n`;
+        initialOutput += `SSH Key: ${sshKeyPath ? 'Yes' : 'No'}\n`;
+      }
+    } else {
+      initialOutput += `\nCredential: None\n`;
+    }
+
     initialOutput += `\nStarting playbook execution...\n\n`;
 
     await pool.query(
@@ -155,21 +170,21 @@ async function processJob(job) {
     );
 
     // Build ansible-playbook command with template options
-    let command = `ansible-playbook -i ${inventoryPath} ${playbookPath}`;
+    const args = ['-i', inventoryPath, playbookPath];
 
     // Add verbosity flags
     if (data.verbosity && data.verbosity > 0) {
-      command += ' -' + 'v'.repeat(data.verbosity);
+      args.push('-' + 'v'.repeat(data.verbosity));
     }
 
     // Add forks option
     if (data.forks) {
-      command += ` --forks ${data.forks}`;
+      args.push('--forks', data.forks.toString());
     }
 
     // Add become option
     if (data.become) {
-      command += ' --become';
+      args.push('--become');
     }
 
     // Environment variables for Ansible
@@ -177,53 +192,101 @@ async function processJob(job) {
       ...process.env,
       ANSIBLE_HOST_KEY_CHECKING: 'False',
       ANSIBLE_STDOUT_CALLBACK: 'default',
-      ANSIBLE_FORCE_COLOR: 'true',
+      ANSIBLE_FORCE_COLOR: 'false',
+      ANSIBLE_NOCOLOR: 'true',
       ANSIBLE_WINRM_CONNECTION_TIMEOUT: '60',
       ANSIBLE_WINRM_READ_TIMEOUT: '60',
     };
 
+    // Function to remove ANSI escape codes
+    const stripAnsi = (str) => {
+      return str.replace(/\x1b\[[0-9;]*m/g, '');
+    };
+
     try {
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: tmpDir,
-        timeout: 300000,
-        env,
+      await new Promise((resolve, reject) => {
+        const process = spawn('ansible-playbook', args, {
+          cwd: tmpDir,
+          env,
+        });
+
+        let stdoutBuffer = '';
+        let stderrBuffer = '';
+        let hasError = false;
+
+        process.stdout.on('data', async (data) => {
+          const text = stripAnsi(data.toString());
+          stdoutBuffer += text;
+
+          // Insert each line immediately
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                await pool.query(
+                  'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
+                  [jobId, 'info', line + '\n']
+                );
+              } catch (err) {
+                console.error('Failed to insert job event:', err);
+              }
+            }
+          }
+        });
+
+        process.stderr.on('data', async (data) => {
+          const text = stripAnsi(data.toString());
+          stderrBuffer += text;
+
+          try {
+            await pool.query(
+              'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
+              [jobId, 'warning', text]
+            );
+          } catch (err) {
+            console.error('Failed to insert stderr event:', err);
+          }
+        });
+
+        process.on('error', (error) => {
+          hasError = true;
+          reject(error);
+        });
+
+        process.on('close', async (code) => {
+          if (hasError) return;
+
+          if (code === 0) {
+            await pool.query(
+              `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2,
+               summary = $3 WHERE id = $4`,
+              ['success', 0, JSON.stringify({ hosts: hosts.length }), jobId]
+            );
+            resolve();
+          } else {
+            await pool.query(
+              `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2 WHERE id = $3`,
+              ['failed', code, jobId]
+            );
+            reject(new Error(`Process exited with code ${code}`));
+          }
+        });
+
+        // Timeout after 5 minutes
+        setTimeout(() => {
+          process.kill();
+          reject(new Error('Job timeout'));
+        }, 300000);
       });
-
-      await pool.query(
-        'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-        [jobId, 'info', stdout]
-      );
-
-      if (stderr) {
-        await pool.query(
-          'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-          [jobId, 'warning', stderr]
-        );
-      }
-
-      await pool.query(
-        `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2,
-         summary = $3 WHERE id = $4`,
-        ['success', 0, JSON.stringify({ hosts: hosts.length }), jobId]
-      );
     } catch (error) {
-      let errorMessage = error.message;
-
-      if (error.stdout) {
-        errorMessage += '\n\nStdout:\n' + error.stdout;
-      }
-      if (error.stderr) {
-        errorMessage += '\n\nStderr:\n' + error.stderr;
-      }
-
       await pool.query(
         'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-        [jobId, 'error', errorMessage]
+        [jobId, 'error', stripAnsi(error.message)]
       );
 
       await pool.query(
         `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2 WHERE id = $3`,
-        ['failed', error.code || 1, jobId]
+        ['failed', 1, jobId]
       );
     }
 
