@@ -12,7 +12,7 @@ RUN apk add --no-cache \
     libffi-dev \
     openssl-dev
 
-RUN pip3 install --no-cache-dir pywinrm[credssp]
+RUN pip3 install --no-cache-dir --break-system-packages pywinrm[credssp]
 
 WORKDIR /app
 
