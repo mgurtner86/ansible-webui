@@ -22,10 +22,13 @@ async function processJob(job) {
     );
 
     const jobData = await pool.query(
-      `SELECT j.*, t.*, p.content as playbook_content, p.name as playbook_name
+      `SELECT j.*, t.*, p.content as playbook_content, p.name as playbook_name,
+              c.ssh_key_data, c.username as ssh_username, c.password as ssh_password,
+              c.become_method, c.become_username, c.become_password, c.type as credential_type
        FROM jobs j
        JOIN templates t ON j.template_id = t.id
        JOIN playbooks p ON t.playbook_id = p.id
+       LEFT JOIN credentials c ON t.credential_id = c.id
        WHERE j.id = $1`,
       [jobId]
     );
@@ -50,18 +53,64 @@ async function processJob(job) {
     const playbookPath = path.join(tmpDir, 'playbook.yml');
     await fs.writeFile(playbookPath, data.playbook_content || '---\n- hosts: all\n  tasks:\n    - debug: msg="Hello World"');
 
+    // Prepare SSH key if available
+    let sshKeyPath = null;
+    if (data.ssh_key_data) {
+      sshKeyPath = path.join(tmpDir, 'ssh_key');
+      await fs.writeFile(sshKeyPath, data.ssh_key_data, { mode: 0o600 });
+    }
+
+    // Build inventory with credentials
     const inventoryPath = path.join(tmpDir, 'inventory.ini');
     let inventoryContent = '[all]\n';
+    const hosts = [];
+
     for (const row of inventoryData.rows.slice(1)) {
       if (row.hostname) {
-        inventoryContent += `${row.hostname}\n`;
+        hosts.push(row.hostname);
+        inventoryContent += `${row.hostname}`;
+
+        // Add SSH username if available
+        if (data.ssh_username) {
+          inventoryContent += ` ansible_user=${data.ssh_username}`;
+        }
+
+        // Add SSH key or password
+        if (sshKeyPath) {
+          inventoryContent += ` ansible_ssh_private_key_file=${sshKeyPath}`;
+        } else if (data.ssh_password) {
+          inventoryContent += ` ansible_password=${data.ssh_password}`;
+        }
+
+        // Add become options
+        if (data.become_method) {
+          inventoryContent += ` ansible_become_method=${data.become_method}`;
+        }
+        if (data.become_username) {
+          inventoryContent += ` ansible_become_user=${data.become_username}`;
+        }
+        if (data.become_password) {
+          inventoryContent += ` ansible_become_password=${data.become_password}`;
+        }
+
+        inventoryContent += '\n';
       }
     }
     await fs.writeFile(inventoryPath, inventoryContent);
 
+    // Output host list
+    let initialOutput = `PLAY [${data.playbook_name}] *********************************************************\n\n`;
+    initialOutput += `Target Hosts (${hosts.length}):\n`;
+    for (const host of hosts) {
+      initialOutput += `  - ${host}\n`;
+    }
+    initialOutput += `\nCredential: ${data.ssh_username ? data.ssh_username + '@' : ''}${data.credential_type || 'None'}\n`;
+    initialOutput += `SSH Key: ${sshKeyPath ? 'Yes' : 'No'}\n`;
+    initialOutput += `\nStarting playbook execution...\n\n`;
+
     await pool.query(
       'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-      [jobId, 'info', 'Starting playbook execution']
+      [jobId, 'info', initialOutput]
     );
 
     // Build ansible-playbook command with template options
@@ -85,10 +134,19 @@ async function processJob(job) {
     // Add check mode
     command += ' --check';
 
+    // Environment variables for Ansible
+    const env = {
+      ...process.env,
+      ANSIBLE_HOST_KEY_CHECKING: 'False',
+      ANSIBLE_STDOUT_CALLBACK: 'default',
+      ANSIBLE_FORCE_COLOR: 'true',
+    };
+
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: tmpDir,
         timeout: 300000,
+        env,
       });
 
       await pool.query(

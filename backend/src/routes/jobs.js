@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
              i.name as inventory_name,
              u.full_name as triggered_by_name,
              COALESCE(
-               (SELECT string_agg(message || E'\n', '' ORDER BY timestamp)
+               (SELECT string_agg(message, '' ORDER BY timestamp)
                 FROM job_events WHERE job_id = j.id),
                ''
              ) as output
@@ -37,7 +37,7 @@ router.get('/:id', async (req, res) => {
              i.name as inventory_name,
              u.full_name as triggered_by_name,
              COALESCE(
-               (SELECT string_agg(message || E'\n', '' ORDER BY timestamp)
+               (SELECT string_agg(message, '' ORDER BY timestamp)
                 FROM job_events WHERE job_id = j.id),
                ''
              ) as output
