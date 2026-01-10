@@ -94,6 +94,71 @@ export default function JobExecution() {
     }
   }
 
+  function getLineColor(line: string): string {
+    const lowerLine = line.toLowerCase();
+
+    // Fehler (Rot)
+    if (
+      lowerLine.includes('fatal') ||
+      lowerLine.includes('failed') ||
+      lowerLine.includes('error') ||
+      lowerLine.includes('unreachable') ||
+      lowerLine.match(/\bfailed:\s*\d+/) ||
+      lowerLine.includes('fatal:')
+    ) {
+      return 'text-red-400';
+    }
+
+    // Warnungen (Orange)
+    if (
+      lowerLine.includes('warn') ||
+      lowerLine.includes('skipping') ||
+      lowerLine.includes('skipped') ||
+      lowerLine.includes('deprecated') ||
+      lowerLine.includes('retry') ||
+      lowerLine.includes('ignored')
+    ) {
+      return 'text-orange-400';
+    }
+
+    // Verbose/Debug (Blau)
+    if (
+      lowerLine.includes('loading') ||
+      lowerLine.includes('declined parsing') ||
+      lowerLine.includes('parsed') ||
+      lowerLine.includes('callback plugin') ||
+      lowerLine.includes('verify_file') ||
+      lowerLine.includes('collection') ||
+      lowerLine.match(/^\s*(meta|using|reading)/)
+    ) {
+      return 'text-blue-400';
+    }
+
+    // Erfolg (Grün)
+    if (
+      lowerLine.includes('ok:') ||
+      lowerLine.includes('changed:') ||
+      lowerLine.match(/ok=\d+/) ||
+      lowerLine.match(/changed=\d+/) ||
+      lowerLine.includes('play recap') ||
+      lowerLine.includes('playbook run') ||
+      lowerLine.includes('task [')
+    ) {
+      return 'text-green-400';
+    }
+
+    // Standard (Grau/Weiß)
+    return 'text-gray-300';
+  }
+
+  function renderColoredOutput() {
+    return output.split('\n').map((line, index) => (
+      <div key={index} className={getLineColor(line)}>
+        {line || '\u00A0'}
+      </div>
+    ));
+  }
+
   async function handleCancel() {
     if (!confirm('Are you sure you want to cancel this job?')) return;
     try {
@@ -190,10 +255,10 @@ export default function JobExecution() {
             </div>
             <div
               ref={outputRef}
-              className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg h-[500px] overflow-y-auto"
+              className="bg-gray-900 font-mono text-sm p-4 rounded-lg h-[500px] overflow-y-auto"
               style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
             >
-              {output}
+              {renderColoredOutput()}
             </div>
           </div>
 
