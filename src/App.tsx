@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Playbooks from './pages/Playbooks';
 import Inventories from './pages/Inventories';
+import InventoryDetail from './pages/InventoryDetail';
 import Templates from './pages/Templates';
 import Jobs from './pages/Jobs';
 import JobExecution from './pages/JobExecution';
@@ -64,6 +65,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Inventories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventories/:id"
+        element={
+          <ProtectedRoute>
+            <InventoryDetail />
           </ProtectedRoute>
         }
       />

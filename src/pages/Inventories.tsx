@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
 import InventoryWizard from '../components/InventoryWizard';
-import { Plus, Server, X, Trash2, Pencil } from 'lucide-react';
+import { Plus, Server, X, Trash2, Eye } from 'lucide-react';
 import type { Inventory } from '../types';
 
 export default function Inventories() {
+  const navigate = useNavigate();
   const [inventories, setInventories] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
@@ -34,16 +36,8 @@ export default function Inventories() {
     }
   }
 
-  function handleEdit(inventory: Inventory) {
-    setEditingId(inventory.id);
-    setFormData({
-      name: inventory.name,
-      description: inventory.description || '',
-      source: inventory.source,
-      content_or_ref: inventory.content_or_ref || '',
-      variables: inventory.variables || {},
-    });
-    setShowForm(true);
+  function handleView(inventory: Inventory) {
+    navigate(`/inventories/${inventory.id}`);
   }
 
   function handleCancel() {
@@ -208,11 +202,11 @@ export default function Inventories() {
                 <div className="flex items-center space-x-2">
                   <Server className="w-5 h-5 text-gray-400" />
                   <button
-                    onClick={() => handleEdit(inventory)}
+                    onClick={() => handleView(inventory)}
                     className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    title="Edit inventory"
+                    title="View inventory"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(inventory.id, inventory.name)}

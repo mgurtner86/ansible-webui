@@ -24,9 +24,11 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT i.*, u.full_name as owner_name
+      SELECT i.*, u.full_name as owner_name,
+             c.name as credential_name, c.type as credential_type
       FROM inventories i
       LEFT JOIN users u ON i.owner_id = u.id
+      LEFT JOIN credentials c ON i.credential_id = c.id
       WHERE i.id = $1
     `, [req.params.id]);
 
@@ -43,13 +45,13 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, description, source, content_or_ref, variables } = req.body;
+    const { name, description, source, content_or_ref, variables, credential_id } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO inventories (name, description, source, content_or_ref, variables, owner_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO inventories (name, description, source, content_or_ref, variables, credential_id, owner_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [name, description || '', source || 'static', content_or_ref || '', variables || {}, req.session.userId]);
+    `, [name, description || '', source || 'static', content_or_ref || '', variables || {}, credential_id || null, req.session.userId]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {

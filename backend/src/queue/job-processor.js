@@ -23,11 +23,14 @@ async function processJob(job) {
 
     const jobData = await pool.query(
       `SELECT j.*, t.*, p.content as playbook_content, p.name as playbook_name,
-              c.encrypted_secret, c.type as credential_type
+              COALESCE(tc.encrypted_secret, ic.encrypted_secret) as encrypted_secret,
+              COALESCE(tc.type, ic.type) as credential_type
        FROM jobs j
        JOIN templates t ON j.template_id = t.id
        JOIN playbooks p ON t.playbook_id = p.id
-       LEFT JOIN credentials c ON t.credential_id = c.id
+       JOIN inventories i ON t.inventory_id = i.id
+       LEFT JOIN credentials tc ON t.credential_id = tc.id
+       LEFT JOIN credentials ic ON i.credential_id = ic.id
        WHERE j.id = $1`,
       [jobId]
     );

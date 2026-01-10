@@ -104,6 +104,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
         source: 'static',
         content_or_ref: '',
         variables: {},
+        credential_id: credential.id,
       });
 
       for (const host of hosts) {
