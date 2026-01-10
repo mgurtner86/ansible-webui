@@ -46,6 +46,21 @@ CREATE TABLE IF NOT EXISTS playbooks (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Credentials table (must be created before inventories)
+CREATE TYPE credential_type AS ENUM ('ssh', 'vault', 'api_token', 'cloud');
+
+CREATE TABLE IF NOT EXISTS credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type credential_type NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    encrypted_secret TEXT NOT NULL,
+    scope VARCHAR(50) DEFAULT 'user',
+    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Inventories table
 CREATE TYPE inventory_source AS ENUM ('static', 'git', 'dynamic');
 
@@ -56,6 +71,7 @@ CREATE TABLE IF NOT EXISTS inventories (
     source inventory_source DEFAULT 'static',
     content_or_ref TEXT,
     variables JSONB DEFAULT '{}',
+    credential_id UUID REFERENCES credentials(id) ON DELETE SET NULL,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -84,21 +100,6 @@ CREATE TABLE IF NOT EXISTS groups (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(inventory_id, name)
-);
-
--- Credentials table
-CREATE TYPE credential_type AS ENUM ('ssh', 'vault', 'api_token', 'cloud');
-
-CREATE TABLE IF NOT EXISTS credentials (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    type credential_type NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    encrypted_secret TEXT NOT NULL,
-    scope VARCHAR(50) DEFAULT 'user',
-    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Templates table
