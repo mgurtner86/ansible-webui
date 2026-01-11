@@ -423,6 +423,108 @@ export default function Settings() {
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <Mail className="w-6 h-6 text-gray-700" />
+                <h2 className="text-xl font-bold text-gray-900">Notification Events</h2>
+              </div>
+              <p className="text-sm text-gray-600 mb-6">
+                Configure which events should trigger email notifications
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {getSettingsByKeys(['notification.job_success.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">Job Success</label>
+                      <p className="text-xs text-gray-600">Notify when a job completes successfully</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
+                {getSettingsByKeys(['notification.job_failure.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">Job Failure</label>
+                      <p className="text-xs text-gray-600">Notify when a job fails</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
+                {getSettingsByKeys(['notification.job_start.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">Job Start</label>
+                      <p className="text-xs text-gray-600">Notify when a job starts execution</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
+                {getSettingsByKeys(['notification.system_error.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">System Error</label>
+                      <p className="text-xs text-gray-600">Notify when system errors occur</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
+                {getSettingsByKeys(['notification.schedule_trigger.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">Schedule Trigger</label>
+                      <p className="text-xs text-gray-600">Notify when a scheduled job is triggered</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
+                {getSettingsByKeys(['notification.inventory_sync.enabled']).map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">Inventory Sync</label>
+                      <p className="text-xs text-gray-600">Notify when inventory synchronization completes</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData[setting.key] || false}
+                      onChange={(e) => handleInputChange(setting.key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
                   <Mail className="w-6 h-6 text-gray-700" />
