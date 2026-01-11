@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Server } from 'lucide-react';
-import { api } from '../lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,11 +19,9 @@ export default function Login() {
 
   async function checkMicrosoftAuth() {
     try {
-      const settings = await api.settings.list();
-      const msEnabled = settings.find((s: any) => s.key === 'auth.microsoft365.enabled');
-      if (msEnabled && msEnabled.value === true) {
-        setMicrosoftEnabled(true);
-      }
+      const response = await fetch('http://localhost:3001/api/auth/config');
+      const config = await response.json();
+      setMicrosoftEnabled(config.microsoftEnabled);
     } catch (error) {
       console.error('Failed to check Microsoft auth status:', error);
     }

@@ -5,6 +5,32 @@ import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
+router.get('/config', async (req, res) => {
+  try {
+    const settings = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('auth.microsoft365.enabled', 'auth.local.enabled')"
+    );
+
+    const config = {
+      localEnabled: true,
+      microsoftEnabled: false,
+    };
+
+    settings.rows.forEach(setting => {
+      if (setting.key === 'auth.microsoft365.enabled') {
+        config.microsoftEnabled = setting.value === true || setting.value === 'true';
+      } else if (setting.key === 'auth.local.enabled') {
+        config.localEnabled = setting.value === true || setting.value === 'true';
+      }
+    });
+
+    res.json(config);
+  } catch (error) {
+    console.error('Auth config error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
