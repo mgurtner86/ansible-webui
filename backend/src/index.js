@@ -5,6 +5,7 @@ import pgSession from 'connect-pg-simple';
 import dotenv from 'dotenv';
 import { pool } from './db/index.js';
 import { startJobWorker } from './queue/job-processor.js';
+import { runMigrations } from './migrations/index.js';
 
 import authRoutes from './routes/auth.js';
 import projectsRoutes from './routes/projects.js';
@@ -123,6 +124,8 @@ async function startServer() {
   try {
     await pool.query('SELECT NOW()');
     console.log('✅ Database connected successfully');
+
+    await runMigrations();
 
     startJobWorker();
 
