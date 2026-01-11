@@ -15,6 +15,8 @@ import jobsRoutes from './routes/jobs.js';
 import credentialsRoutes from './routes/credentials.js';
 import schedulesRoutes from './routes/schedules.js';
 import hostsRoutes from './routes/hosts.js';
+import auditRoutes from './routes/audit.js';
+import settingsRoutes from './routes/settings.js';
 
 dotenv.config();
 
@@ -62,6 +64,8 @@ app.use('/api/jobs', requireAuth, jobsRoutes);
 app.use('/api/credentials', requireAuth, credentialsRoutes);
 app.use('/api/schedules', requireAuth, schedulesRoutes);
 app.use('/api/hosts', requireAuth, hostsRoutes);
+app.use('/api/audit', requireAuth, auditRoutes);
+app.use('/api/settings', requireAuth, settingsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

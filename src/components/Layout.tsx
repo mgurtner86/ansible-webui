@@ -9,6 +9,7 @@ import {
   Calendar,
   Key,
   FileText,
+  Settings,
   LogOut,
   User,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Schedules', path: '/schedules', icon: Calendar },
     { name: 'Credentials', path: '/credentials', icon: Key },
     { name: 'Audit', path: '/audit', icon: FileText },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
   return (

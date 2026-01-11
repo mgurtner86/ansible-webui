@@ -11,6 +11,7 @@ import JobExecution from './pages/JobExecution';
 import Credentials from './pages/Credentials';
 import Schedules from './pages/Schedules';
 import Audit from './pages/Audit';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -121,6 +122,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Audit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />

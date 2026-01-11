@@ -104,6 +104,28 @@ export const api = {
   hosts: {
     create: (data: any) => request('/hosts', { method: 'POST', body: JSON.stringify(data) }),
   },
+
+  audit: {
+    list: (params?: { page?: number; limit?: number; action?: string; target_type?: string; actor_id?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.page) query.set('page', params.page.toString());
+      if (params?.limit) query.set('limit', params.limit.toString());
+      if (params?.action) query.set('action', params.action);
+      if (params?.target_type) query.set('target_type', params.target_type);
+      if (params?.actor_id) query.set('actor_id', params.actor_id);
+      return request(`/audit?${query.toString()}`);
+    },
+    stats: () => request('/audit/stats'),
+  },
+
+  settings: {
+    list: (category?: string) => request(`/settings${category ? `?category=${category}` : ''}`),
+    categories: () => request('/settings/categories'),
+    get: (key: string) => request(`/settings/${key}`),
+    update: (key: string, value: any) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+    create: (data: any) => request('/settings', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (key: string) => request(`/settings/${key}`, { method: 'DELETE' }),
+  },
 };
 
 export type { User, Session } from '../types';
