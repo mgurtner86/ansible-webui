@@ -57,6 +57,7 @@ services:
       - ./backend:/app
       - /app/node_modules
       - ansible_data:/var/lib/ansible
+      - ./database/migrations:/app/database/migrations:ro
     restart: unless-stopped
 
   frontend:
