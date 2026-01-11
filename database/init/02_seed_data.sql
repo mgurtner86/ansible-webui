@@ -55,16 +55,18 @@ INSERT INTO role_permissions (role, resource, can_create, can_read, can_update, 
 ON CONFLICT DO NOTHING;
 
 -- Insert default settings
-INSERT INTO settings (key, value, category, description) VALUES
-    ('auth.microsoft365.enabled', 'false', 'authentication', 'Enable Microsoft 365 OAuth authentication'),
-    ('auth.microsoft365.client_id', '""', 'authentication', 'Microsoft 365 OAuth Client ID'),
-    ('auth.microsoft365.tenant_id', '""', 'authentication', 'Microsoft 365 Tenant ID'),
-    ('auth.local.enabled', 'true', 'authentication', 'Enable local username/password authentication'),
-    ('email.oauth.provider', '"microsoft365"', 'email', 'OAuth provider for email (microsoft365)'),
-    ('email.oauth.client_id', '""', 'email', 'OAuth client ID for email'),
-    ('email.oauth.tenant_id', '""', 'email', 'OAuth tenant ID for email'),
-    ('email.oauth.from', '""', 'email', 'Email from address'),
-    ('system.job_retention_days', '30', 'system', 'Number of days to retain job history'),
-    ('system.audit_retention_days', '90', 'system', 'Number of days to retain audit logs'),
-    ('system.max_concurrent_jobs', '10', 'system', 'Maximum number of concurrent jobs')
+INSERT INTO settings (key, value, category, description, is_encrypted) VALUES
+    ('auth.microsoft365.enabled', 'false', 'authentication', 'Enable Microsoft 365 OAuth authentication', false),
+    ('auth.microsoft365.client_id', '""', 'authentication', 'Microsoft 365 OAuth Client ID', false),
+    ('auth.microsoft365.client_secret', '""', 'authentication', 'Microsoft 365 OAuth Client Secret', true),
+    ('auth.microsoft365.tenant_id', '""', 'authentication', 'Microsoft 365 Tenant ID', false),
+    ('auth.local.enabled', 'true', 'authentication', 'Enable local username/password authentication', false),
+    ('email.oauth.provider', '"microsoft365"', 'email', 'OAuth provider for email (microsoft365)', false),
+    ('email.oauth.client_id', '""', 'email', 'OAuth client ID for email', false),
+    ('email.oauth.client_secret', '""', 'email', 'OAuth client secret for email', true),
+    ('email.oauth.tenant_id', '""', 'email', 'OAuth tenant ID for email', false),
+    ('email.oauth.from', '""', 'email', 'Email from address', false),
+    ('system.job_retention_days', '30', 'system', 'Number of days to retain job history', false),
+    ('system.audit_retention_days', '90', 'system', 'Number of days to retain audit logs', false),
+    ('system.max_concurrent_jobs', '10', 'system', 'Maximum number of concurrent jobs', false)
 ON CONFLICT (key) DO NOTHING;

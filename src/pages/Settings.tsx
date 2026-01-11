@@ -213,10 +213,11 @@ export default function Settings() {
                         <h3 className="text-sm font-semibold text-blue-900">Setup Instructions</h3>
                         <ol className="mt-2 text-sm text-blue-800 space-y-1 list-decimal list-inside">
                           <li>Register an application in Azure AD</li>
-                          <li>Set redirect URI to: https://your-domain.com/auth/callback</li>
-                          <li>Grant API permissions: User.Read, Mail.Send</li>
+                          <li>Set redirect URI to: http://localhost:3001/api/auth/microsoft/callback</li>
+                          <li>Grant API permissions: User.Read, Mail.Send, openid, profile, email</li>
                           <li>Copy Client ID and Tenant ID to the fields above</li>
-                          <li>Create a client secret and store it securely</li>
+                          <li>Create a client secret in Azure AD and copy the value to Client Secret field</li>
+                          <li>Enable Microsoft 365 OAuth authentication</li>
                         </ol>
                       </div>
                     </div>

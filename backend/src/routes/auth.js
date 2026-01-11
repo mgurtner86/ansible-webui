@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../db/index.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
@@ -132,6 +133,133 @@ router.get('/session', async (req, res) => {
   } catch (error) {
     console.error('Session error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/microsoft/login', async (req, res) => {
+  try {
+    const settings = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('auth.microsoft365.client_id', 'auth.microsoft365.tenant_id')"
+    );
+
+    const clientId = settings.rows.find(s => s.key === 'auth.microsoft365.client_id')?.value;
+    const tenantId = settings.rows.find(s => s.key === 'auth.microsoft365.tenant_id')?.value;
+
+    if (!clientId || !tenantId) {
+      return res.status(400).json({ error: 'Microsoft OAuth not configured' });
+    }
+
+    const redirectUri = `${process.env.API_URL || 'http://localhost:3001'}/api/auth/microsoft/callback`;
+    const state = Math.random().toString(36).substring(7);
+    req.session.oauthState = state;
+
+    const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?` +
+      `client_id=${clientId}` +
+      `&response_type=code` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_mode=query` +
+      `&scope=${encodeURIComponent('openid profile email User.Read')}` +
+      `&state=${state}`;
+
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Microsoft login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/microsoft/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code || state !== req.session.oauthState) {
+      return res.redirect('http://localhost:5173/login?error=invalid_state');
+    }
+
+    const settings = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('auth.microsoft365.client_id', 'auth.microsoft365.client_secret', 'auth.microsoft365.tenant_id')"
+    );
+
+    const clientId = settings.rows.find(s => s.key === 'auth.microsoft365.client_id')?.value;
+    const clientSecret = settings.rows.find(s => s.key === 'auth.microsoft365.client_secret')?.value;
+    const tenantId = settings.rows.find(s => s.key === 'auth.microsoft365.tenant_id')?.value;
+
+    if (!clientId || !clientSecret || !tenantId) {
+      return res.redirect('http://localhost:5173/login?error=config_error');
+    }
+
+    const redirectUri = `${process.env.API_URL || 'http://localhost:3001'}/api/auth/microsoft/callback`;
+
+    const tokenResponse = await fetch(
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: code,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      }
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token) {
+      return res.redirect('http://localhost:5173/login?error=token_error');
+    }
+
+    const userResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+
+    const userData = await userResponse.json();
+
+    const email = userData.mail || userData.userPrincipalName;
+    const fullName = userData.displayName || email;
+
+    let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+    if (userResult.rows.length === 0) {
+      userResult = await pool.query(
+        `INSERT INTO users (email, full_name, role, auth_provider, is_active)
+         VALUES ($1, $2, 'viewer', 'microsoft365', TRUE)
+         RETURNING *`,
+        [email, fullName]
+      );
+
+      await logAudit({
+        actorId: userResult.rows[0].id,
+        action: 'create',
+        targetType: 'user',
+        targetId: userResult.rows[0].id,
+        details: `User created via Microsoft OAuth: ${email}`,
+        ipAddress: req.ip
+      });
+    } else {
+      await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [userResult.rows[0].id]);
+    }
+
+    const user = userResult.rows[0];
+
+    await logAudit({
+      actorId: user.id,
+      action: 'login',
+      targetType: 'user',
+      targetId: user.id,
+      details: `User logged in via Microsoft OAuth`,
+      ipAddress: req.ip
+    });
+
+    req.session.userId = user.id;
+    req.session.userEmail = user.email;
+
+    res.redirect('http://localhost:5173/dashboard');
+  } catch (error) {
+    console.error('Microsoft callback error:', error);
+    res.redirect('http://localhost:5173/login?error=auth_failed');
   }
 });
 
