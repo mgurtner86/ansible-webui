@@ -1,6 +1,7 @@
 import express from 'express';
 import { Queue } from 'bullmq';
 import { pool } from '../db/index.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
@@ -77,6 +78,15 @@ router.post('/', async (req, res) => {
       forks || 5, timeout || 3600, become || false, verbosity || 0, req.session.userId
     ]);
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'create',
+      targetType: 'template',
+      targetId: result.rows[0].id,
+      details: `Created template: ${name}`,
+      ipAddress: req.ip
+    });
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Create template error:', error);
@@ -107,6 +117,15 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Template not found' });
     }
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'update',
+      targetType: 'template',
+      targetId: req.params.id,
+      details: `Updated template: ${name}`,
+      ipAddress: req.ip
+    });
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Update template error:', error);
@@ -116,11 +135,20 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM templates WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await pool.query('DELETE FROM templates WHERE id = $1 RETURNING id, name', [req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Template not found' });
     }
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'delete',
+      targetType: 'template',
+      targetId: req.params.id,
+      details: `Deleted template: ${result.rows[0].name || req.params.id}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: 'Template deleted successfully' });
   } catch (error) {
@@ -133,6 +161,8 @@ router.post('/:id/launch', async (req, res) => {
   try {
     const { extra_vars, limits, tags } = req.body;
 
+    const templateResult = await pool.query('SELECT name FROM templates WHERE id = $1', [req.params.id]);
+
     const result = await pool.query(`
       INSERT INTO jobs (template_id, triggered_by, status, extra_vars, limits, tags)
       VALUES ($1, $2, 'queued', $3, $4, $5)
@@ -140,6 +170,15 @@ router.post('/:id/launch', async (req, res) => {
     `, [req.params.id, req.session.userId, extra_vars || {}, limits || null, tags || []]);
 
     const job = result.rows[0];
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'execute',
+      targetType: 'template',
+      targetId: req.params.id,
+      details: `Launched template: ${templateResult.rows[0]?.name || req.params.id} (Job #${job.id})`,
+      ipAddress: req.ip
+    });
 
     await jobQueue.add('execute-playbook', {
       jobId: job.id,

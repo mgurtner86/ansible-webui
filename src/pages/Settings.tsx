@@ -236,14 +236,14 @@ export default function Settings() {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-start">
-                      <Mail className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
+                      <Mail className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
                       <div>
-                        <h3 className="text-sm font-semibold text-yellow-900">Email Providers</h3>
-                        <p className="mt-1 text-sm text-yellow-800">
-                          Choose between SMTP (traditional) or OAuth (Microsoft 365/Google) for sending emails.
-                          OAuth is recommended for better security and reliability.
+                        <h3 className="text-sm font-semibold text-blue-900">OAuth Email Configuration</h3>
+                        <p className="mt-1 text-sm text-blue-800">
+                          Configure OAuth 2.0 for secure email sending via Microsoft 365.
+                          Use the same Client ID and Tenant ID from the Authentication tab.
                         </p>
                       </div>
                     </div>

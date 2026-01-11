@@ -1,6 +1,6 @@
 import express from 'express';
 import { pool } from '../db/index.js';
-import { createAuditLog } from './audit.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
@@ -60,34 +60,27 @@ router.put('/:key', async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
-    const userId = req.user?.id;
-
-    const oldSetting = await pool.query('SELECT * FROM settings WHERE key = $1', [key]);
 
     const result = await pool.query(
       `UPDATE settings
        SET value = $1, updated_by = $2, updated_at = NOW()
        WHERE key = $3
        RETURNING *`,
-      [JSON.stringify(value), userId, key]
+      [JSON.stringify(value), req.session.userId, key]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Setting not found' });
     }
 
-    await createAuditLog(
-      userId,
-      'update_setting',
-      'setting',
-      result.rows[0].id,
-      oldSetting.rows[0],
-      result.rows[0],
-      req.ip,
-      req.get('user-agent'),
-      `Updated setting: ${key}`,
-      'success'
-    );
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'update',
+      targetType: 'setting',
+      targetId: result.rows[0].id,
+      details: `Updated setting: ${key}`,
+      ipAddress: req.ip
+    });
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -99,27 +92,22 @@ router.put('/:key', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { key, value, category, description, is_encrypted } = req.body;
-    const userId = req.user?.id;
 
     const result = await pool.query(
       `INSERT INTO settings (key, value, category, description, is_encrypted, updated_by)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [key, JSON.stringify(value), category, description, is_encrypted || false, userId]
+      [key, JSON.stringify(value), category, description, is_encrypted || false, req.session.userId]
     );
 
-    await createAuditLog(
-      userId,
-      'create_setting',
-      'setting',
-      result.rows[0].id,
-      {},
-      result.rows[0],
-      req.ip,
-      req.get('user-agent'),
-      `Created setting: ${key}`,
-      'success'
-    );
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'create',
+      targetType: 'setting',
+      targetId: result.rows[0].id,
+      details: `Created setting: ${key}`,
+      ipAddress: req.ip
+    });
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -131,7 +119,6 @@ router.post('/', async (req, res) => {
 router.delete('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const userId = req.user?.id;
 
     const oldSetting = await pool.query('SELECT * FROM settings WHERE key = $1', [key]);
 
@@ -141,18 +128,14 @@ router.delete('/:key', async (req, res) => {
 
     await pool.query('DELETE FROM settings WHERE key = $1', [key]);
 
-    await createAuditLog(
-      userId,
-      'delete_setting',
-      'setting',
-      oldSetting.rows[0].id,
-      oldSetting.rows[0],
-      {},
-      req.ip,
-      req.get('user-agent'),
-      `Deleted setting: ${key}`,
-      'success'
-    );
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'delete',
+      targetType: 'setting',
+      targetId: oldSetting.rows[0].id,
+      details: `Deleted setting: ${key}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: 'Setting deleted successfully' });
   } catch (error) {

@@ -3,6 +3,7 @@ export interface User {
   email: string;
   full_name: string;
   role: 'admin' | 'manager' | 'operator' | 'viewer';
+  auth_provider: 'local' | 'microsoft365';
   mfa_enabled: boolean;
   is_active: boolean;
   created_at: string;

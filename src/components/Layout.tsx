@@ -27,7 +27,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Schedules', path: '/schedules', icon: Calendar },
     { name: 'Credentials', path: '/credentials', icon: Key },
     { name: 'Audit', path: '/audit', icon: FileText },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    ...(user?.role === 'admin' && user?.auth_provider === 'local'
+      ? [{ name: 'Settings', path: '/settings', icon: Settings }]
+      : []),
   ];
 
   return (

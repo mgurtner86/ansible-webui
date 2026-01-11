@@ -111,7 +111,7 @@ router.get('/session', async (req, res) => {
     }
 
     const result = await pool.query(
-      'SELECT id, email, full_name, role, mfa_enabled, is_active, created_at, last_login_at FROM users WHERE id = $1 AND is_active = TRUE',
+      'SELECT id, email, full_name, role, auth_provider, mfa_enabled, is_active, created_at, last_login_at FROM users WHERE id = $1 AND is_active = TRUE',
       [req.session.userId]
     );
 

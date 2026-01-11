@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool } from '../db/index.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
@@ -52,6 +53,15 @@ router.post('/', async (req, res) => {
       RETURNING id, type, name, description, scope, created_at, updated_at
     `, [type, name, description || '', encryptedSecret, scope || 'user', req.session.userId]);
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'create',
+      targetType: 'credential',
+      targetId: result.rows[0].id,
+      details: `Created credential: ${name} (${type})`,
+      ipAddress: req.ip
+    });
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Create credential error:', error);
@@ -89,6 +99,15 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Credential not found' });
     }
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'update',
+      targetType: 'credential',
+      targetId: req.params.id,
+      details: `Updated credential: ${name}`,
+      ipAddress: req.ip
+    });
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Update credential error:', error);
@@ -98,11 +117,20 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM credentials WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await pool.query('DELETE FROM credentials WHERE id = $1 RETURNING id, name', [req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Credential not found' });
     }
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'delete',
+      targetType: 'credential',
+      targetId: req.params.id,
+      details: `Deleted credential: ${result.rows[0].name || req.params.id}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: 'Credential deleted successfully' });
   } catch (error) {

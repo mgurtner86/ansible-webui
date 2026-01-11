@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db/index.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = Router();
 
@@ -28,6 +29,16 @@ router.post('/', async (req, res) => {
        RETURNING *`,
       [name, description, content, req.session.userId]
     );
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'create',
+      targetType: 'playbook',
+      targetId: result.rows[0].id,
+      details: `Created playbook: ${name}`,
+      ipAddress: req.ip
+    });
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error creating playbook:', error);
@@ -68,6 +79,15 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Playbook not found' });
     }
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'update',
+      targetType: 'playbook',
+      targetId: req.params.id,
+      details: `Updated playbook: ${name}`,
+      ipAddress: req.ip
+    });
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating playbook:', error);
@@ -78,13 +98,22 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM playbooks WHERE id = $1 AND user_id = $2 RETURNING id',
+      'DELETE FROM playbooks WHERE id = $1 AND user_id = $2 RETURNING id, name',
       [req.params.id, req.session.userId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Playbook not found' });
     }
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'delete',
+      targetType: 'playbook',
+      targetId: req.params.id,
+      details: `Deleted playbook: ${result.rows[0].name || req.params.id}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: 'Playbook deleted successfully' });
   } catch (error) {

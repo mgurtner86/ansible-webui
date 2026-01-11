@@ -8,9 +8,10 @@ CREATE TYPE user_role AS ENUM ('admin', 'manager', 'operator', 'viewer');
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
     full_name VARCHAR(255),
     role user_role DEFAULT 'viewer',
+    auth_provider VARCHAR(50) DEFAULT 'local',
     mfa_enabled BOOLEAN DEFAULT FALSE,
     mfa_secret VARCHAR(255),
     is_active BOOLEAN DEFAULT TRUE,

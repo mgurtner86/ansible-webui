@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool } from '../db/index.js';
+import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
@@ -87,6 +88,15 @@ router.post('/:id/cancel', async (req, res) => {
       return res.status(404).json({ error: 'Job not found or already finished' });
     }
 
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'cancel',
+      targetType: 'job',
+      targetId: req.params.id,
+      details: `Cancelled job #${req.params.id}`,
+      ipAddress: req.ip
+    });
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Cancel job error:', error);
@@ -101,6 +111,15 @@ router.delete('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Job not found' });
     }
+
+    await logAudit({
+      actorId: req.session.userId,
+      action: 'delete',
+      targetType: 'job',
+      targetId: req.params.id,
+      details: `Deleted job #${req.params.id}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: 'Job deleted successfully' });
   } catch (error) {
