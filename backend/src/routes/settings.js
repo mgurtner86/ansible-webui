@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../db/index.js';
+import { pool } from '../db/index.js';
 import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
@@ -8,21 +8,19 @@ router.get('/', async (req, res) => {
   try {
     const { category } = req.query;
 
-    let query = supabase
-      .from('settings')
-      .select('*');
+    let query = 'SELECT * FROM settings';
+    const params = [];
 
     if (category) {
-      query = query.eq('category', category);
+      query += ' WHERE category = $1';
+      params.push(category);
     }
 
-    query = query.order('category').order('key');
+    query += ' ORDER BY category, key';
 
-    const { data, error } = await query;
+    const result = await pool.query(query, params);
 
-    if (error) throw error;
-
-    res.json(data);
+    res.json(result.rows);
   } catch (error) {
     console.error('Failed to fetch settings:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });
@@ -31,14 +29,11 @@ router.get('/', async (req, res) => {
 
 router.get('/categories', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('category')
-      .order('category');
+    const result = await pool.query(
+      'SELECT DISTINCT category FROM settings ORDER BY category'
+    );
 
-    if (error) throw error;
-
-    const categories = [...new Set(data.map(r => r.category))];
+    const categories = result.rows.map(r => r.category);
     res.json(categories);
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -49,19 +44,16 @@ router.get('/categories', async (req, res) => {
 router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*')
-      .eq('key', key)
-      .maybeSingle();
+    const result = await pool.query(
+      'SELECT * FROM settings WHERE key = $1',
+      [key]
+    );
 
-    if (error) throw error;
-
-    if (!data) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Setting not found' });
     }
 
-    res.json(data);
+    res.json(result.rows[0]);
   } catch (error) {
     console.error('Failed to fetch setting:', error);
     res.status(500).json({ error: 'Failed to fetch setting' });
@@ -73,33 +65,34 @@ router.put('/:key', async (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
-    const { data, error } = await supabase
-      .from('settings')
-      .update({
-        value: typeof value === 'string' ? value : JSON.stringify(value),
-        updated_by: req.session.userId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('key', key)
-      .select()
-      .maybeSingle();
+    const result = await pool.query(
+      `UPDATE settings
+       SET value = $1, updated_by = $2, updated_at = NOW()
+       WHERE key = $3
+       RETURNING *`,
+      [
+        typeof value === 'string' ? value : JSON.stringify(value),
+        req.session.userId,
+        key
+      ]
+    );
 
-    if (error) throw error;
-
-    if (!data) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Setting not found' });
     }
+
+    const setting = result.rows[0];
 
     await logAudit({
       actorId: req.session.userId,
       action: 'update',
       targetType: 'setting',
-      targetId: data.id,
+      targetId: setting.id,
       details: `Updated setting: ${key}`,
       ipAddress: req.ip
     });
 
-    res.json(data);
+    res.json(setting);
   } catch (error) {
     console.error('Failed to update setting:', error);
     res.status(500).json({ error: 'Failed to update setting' });
@@ -110,31 +103,32 @@ router.post('/', async (req, res) => {
   try {
     const { key, value, category, description, is_encrypted } = req.body;
 
-    const { data, error } = await supabase
-      .from('settings')
-      .insert({
+    const result = await pool.query(
+      `INSERT INTO settings (key, value, category, description, is_encrypted, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
         key,
-        value: typeof value === 'string' ? value : JSON.stringify(value),
+        typeof value === 'string' ? value : JSON.stringify(value),
         category,
         description,
-        is_encrypted: is_encrypted || false,
-        updated_by: req.session.userId
-      })
-      .select()
-      .single();
+        is_encrypted || false,
+        req.session.userId
+      ]
+    );
 
-    if (error) throw error;
+    const setting = result.rows[0];
 
     await logAudit({
       actorId: req.session.userId,
       action: 'create',
       targetType: 'setting',
-      targetId: data.id,
+      targetId: setting.id,
       details: `Created setting: ${key}`,
       ipAddress: req.ip
     });
 
-    res.status(201).json(data);
+    res.status(201).json(setting);
   } catch (error) {
     console.error('Failed to create setting:', error);
     res.status(500).json({ error: 'Failed to create setting' });
@@ -145,24 +139,18 @@ router.delete('/:key', async (req, res) => {
   try {
     const { key } = req.params;
 
-    const { data: oldSetting, error: fetchError } = await supabase
-      .from('settings')
-      .select('*')
-      .eq('key', key)
-      .maybeSingle();
+    const fetchResult = await pool.query(
+      'SELECT * FROM settings WHERE key = $1',
+      [key]
+    );
 
-    if (fetchError) throw fetchError;
-
-    if (!oldSetting) {
+    if (fetchResult.rows.length === 0) {
       return res.status(404).json({ error: 'Setting not found' });
     }
 
-    const { error: deleteError } = await supabase
-      .from('settings')
-      .delete()
-      .eq('key', key);
+    const oldSetting = fetchResult.rows[0];
 
-    if (deleteError) throw deleteError;
+    await pool.query('DELETE FROM settings WHERE key = $1', [key]);
 
     await logAudit({
       actorId: req.session.userId,

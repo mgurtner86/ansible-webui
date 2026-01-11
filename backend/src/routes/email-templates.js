@@ -1,19 +1,16 @@
 import express from 'express';
-import { supabase } from '../db/index.js';
+import { pool } from '../db/index.js';
 import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('email_templates')
-      .select('id, name, subject, body, variables, description, is_active, created_at, updated_at')
-      .order('name');
+    const result = await pool.query(
+      'SELECT id, name, subject, body, variables, description, is_active, created_at, updated_at FROM email_templates ORDER BY name'
+    );
 
-    if (error) throw error;
-
-    res.json(data);
+    res.json(result.rows);
   } catch (error) {
     console.error('Failed to fetch email templates:', error);
     res.status(500).json({ error: 'Failed to fetch email templates' });
@@ -23,19 +20,16 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase
-      .from('email_templates')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    const result = await pool.query(
+      'SELECT * FROM email_templates WHERE id = $1',
+      [id]
+    );
 
-    if (error) throw error;
-
-    if (!data) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    res.json(data);
+    res.json(result.rows[0]);
   } catch (error) {
     console.error('Failed to fetch template:', error);
     res.status(500).json({ error: 'Failed to fetch template' });
@@ -50,33 +44,34 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name, subject, and body are required' });
     }
 
-    const { data, error } = await supabase
-      .from('email_templates')
-      .insert({
+    const result = await pool.query(
+      `INSERT INTO email_templates (name, subject, body, variables, description, is_active, created_by, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
         name,
         subject,
         body,
-        variables: variables || [],
+        JSON.stringify(variables || []),
         description,
-        is_active: is_active !== false,
-        created_by: req.session.userId,
-        updated_by: req.session.userId
-      })
-      .select()
-      .single();
+        is_active !== false,
+        req.session.userId,
+        req.session.userId
+      ]
+    );
 
-    if (error) throw error;
+    const template = result.rows[0];
 
     await logAudit({
       actorId: req.session.userId,
       action: 'create',
       targetType: 'email_template',
-      targetId: data.id,
+      targetId: template.id,
       details: `Created email template: ${name}`,
       ipAddress: req.ip
     });
 
-    res.status(201).json(data);
+    res.status(201).json(template);
   } catch (error) {
     console.error('Failed to create template:', error);
     res.status(500).json({ error: 'Failed to create template' });
@@ -88,41 +83,62 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, subject, body, variables, description, is_active } = req.body;
 
-    const updateData = {
-      updated_by: req.session.userId,
-      updated_at: new Date().toISOString()
-    };
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
 
-    if (name !== undefined) updateData.name = name;
-    if (subject !== undefined) updateData.subject = subject;
-    if (body !== undefined) updateData.body = body;
-    if (variables !== undefined) updateData.variables = variables;
-    if (description !== undefined) updateData.description = description;
-    if (is_active !== undefined) updateData.is_active = is_active;
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (subject !== undefined) {
+      updates.push(`subject = $${paramIndex++}`);
+      values.push(subject);
+    }
+    if (body !== undefined) {
+      updates.push(`body = $${paramIndex++}`);
+      values.push(body);
+    }
+    if (variables !== undefined) {
+      updates.push(`variables = $${paramIndex++}`);
+      values.push(JSON.stringify(variables));
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description);
+    }
+    if (is_active !== undefined) {
+      updates.push(`is_active = $${paramIndex++}`);
+      values.push(is_active);
+    }
 
-    const { data, error } = await supabase
-      .from('email_templates')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    updates.push(`updated_by = $${paramIndex++}`);
+    values.push(req.session.userId);
+    updates.push(`updated_at = NOW()`);
 
-    if (error) throw error;
+    values.push(id);
 
-    if (!data) {
+    const result = await pool.query(
+      `UPDATE email_templates SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Template not found' });
     }
+
+    const template = result.rows[0];
 
     await logAudit({
       actorId: req.session.userId,
       action: 'update',
       targetType: 'email_template',
       targetId: id,
-      details: `Updated email template: ${name || data.name}`,
+      details: `Updated email template: ${name || template.name}`,
       ipAddress: req.ip
     });
 
-    res.json(data);
+    res.json(template);
   } catch (error) {
     console.error('Failed to update template:', error);
     res.status(500).json({ error: 'Failed to update template' });
@@ -133,24 +149,18 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: template, error: fetchError } = await supabase
-      .from('email_templates')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    const templateResult = await pool.query(
+      'SELECT * FROM email_templates WHERE id = $1',
+      [id]
+    );
 
-    if (fetchError) throw fetchError;
-
-    if (!template) {
+    if (templateResult.rows.length === 0) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    const { error: deleteError } = await supabase
-      .from('email_templates')
-      .delete()
-      .eq('id', id);
+    const template = templateResult.rows[0];
 
-    if (deleteError) throw deleteError;
+    await pool.query('DELETE FROM email_templates WHERE id = $1', [id]);
 
     await logAudit({
       actorId: req.session.userId,
