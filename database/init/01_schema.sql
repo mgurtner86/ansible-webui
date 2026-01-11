@@ -197,6 +197,23 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Settings table for application configuration
+CREATE TABLE IF NOT EXISTS settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    key VARCHAR(100) UNIQUE NOT NULL,
+    value JSONB NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description TEXT,
+    is_encrypted BOOLEAN DEFAULT FALSE,
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add additional fields to audit_logs
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS details TEXT;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'success';
+
 -- Indexes for performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_jobs_status ON jobs(status);
@@ -204,5 +221,9 @@ CREATE INDEX idx_jobs_created_at ON jobs(created_at DESC);
 CREATE INDEX idx_job_events_job_id ON job_events(job_id);
 CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
 CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX idx_audit_logs_target_type ON audit_logs(target_type);
 CREATE INDEX idx_hosts_inventory_id ON hosts(inventory_id);
 CREATE INDEX idx_playbooks_user_id ON playbooks(user_id);
+CREATE INDEX idx_settings_key ON settings(key);
+CREATE INDEX idx_settings_category ON settings(category);
