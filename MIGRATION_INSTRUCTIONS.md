@@ -14,14 +14,13 @@ Beim Start des Backend-Servers:
 Um die neuesten Migrationen anzuwenden, starten Sie einfach das Backend neu:
 
 ```bash
-cd backend
-npm start
+docker restart ansible-tower-backend
 ```
 
-Oder mit Docker:
+Überprüfen Sie die Logs, um zu sehen, ob die Migrationen erfolgreich waren:
 
 ```bash
-docker-compose restart backend
+docker logs ansible-tower-backend | grep -i migration
 ```
 
 ## Verfügbare Migrationen
@@ -36,7 +35,7 @@ docker-compose restart backend
 
 ```bash
 # Verbindung zur Datenbank
-docker-compose exec postgres psql -U ansible -d ansible_tower
+docker exec -it ansible-tower-db psql -U ansible -d ansible_tower
 
 # Angewendete Migrationen anzeigen
 SELECT * FROM schema_migrations ORDER BY applied_at;
