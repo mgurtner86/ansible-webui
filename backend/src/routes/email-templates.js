@@ -1,17 +1,19 @@
 import express from 'express';
-import { pool } from '../db/index.js';
+import { supabase } from '../db/index.js';
 import { logAudit } from '../utils/audit.js';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT id, name, subject, body, variables, description, is_active, created_at, updated_at
-      FROM email_templates
-      ORDER BY name
-    `);
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('id, name, subject, body, variables, description, is_active, created_at, updated_at')
+      .order('name');
+
+    if (error) throw error;
+
+    res.json(data);
   } catch (error) {
     console.error('Failed to fetch email templates:', error);
     res.status(500).json({ error: 'Failed to fetch email templates' });
@@ -21,16 +23,19 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      'SELECT * FROM email_templates WHERE id = $1',
-      [id]
-    );
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
 
-    if (result.rows.length === 0) {
+    if (error) throw error;
+
+    if (!data) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json(data);
   } catch (error) {
     console.error('Failed to fetch template:', error);
     res.status(500).json({ error: 'Failed to fetch template' });
@@ -45,23 +50,33 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name, subject, and body are required' });
     }
 
-    const result = await pool.query(
-      `INSERT INTO email_templates (name, subject, body, variables, description, is_active, created_by, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
-       RETURNING *`,
-      [name, subject, body, variables || [], description, is_active !== false, req.session.userId]
-    );
+    const { data, error } = await supabase
+      .from('email_templates')
+      .insert({
+        name,
+        subject,
+        body,
+        variables: variables || [],
+        description,
+        is_active: is_active !== false,
+        created_by: req.session.userId,
+        updated_by: req.session.userId
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
 
     await logAudit({
       actorId: req.session.userId,
       action: 'create',
       targetType: 'email_template',
-      targetId: result.rows[0].id,
+      targetId: data.id,
       details: `Created email template: ${name}`,
       ipAddress: req.ip
     });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(data);
   } catch (error) {
     console.error('Failed to create template:', error);
     res.status(500).json({ error: 'Failed to create template' });
@@ -73,22 +88,28 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, subject, body, variables, description, is_active } = req.body;
 
-    const result = await pool.query(
-      `UPDATE email_templates
-       SET name = COALESCE($1, name),
-           subject = COALESCE($2, subject),
-           body = COALESCE($3, body),
-           variables = COALESCE($4, variables),
-           description = COALESCE($5, description),
-           is_active = COALESCE($6, is_active),
-           updated_by = $7,
-           updated_at = NOW()
-       WHERE id = $8
-       RETURNING *`,
-      [name, subject, body, variables, description, is_active, req.session.userId, id]
-    );
+    const updateData = {
+      updated_by: req.session.userId,
+      updated_at: new Date().toISOString()
+    };
 
-    if (result.rows.length === 0) {
+    if (name !== undefined) updateData.name = name;
+    if (subject !== undefined) updateData.subject = subject;
+    if (body !== undefined) updateData.body = body;
+    if (variables !== undefined) updateData.variables = variables;
+    if (description !== undefined) updateData.description = description;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
+    const { data, error } = await supabase
+      .from('email_templates')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
@@ -97,11 +118,11 @@ router.put('/:id', async (req, res) => {
       action: 'update',
       targetType: 'email_template',
       targetId: id,
-      details: `Updated email template: ${name || result.rows[0].name}`,
+      details: `Updated email template: ${name || data.name}`,
       ipAddress: req.ip
     });
 
-    res.json(result.rows[0]);
+    res.json(data);
   } catch (error) {
     console.error('Failed to update template:', error);
     res.status(500).json({ error: 'Failed to update template' });
@@ -112,20 +133,31 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const template = await pool.query('SELECT * FROM email_templates WHERE id = $1', [id]);
+    const { data: template, error: fetchError } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
 
-    if (template.rows.length === 0) {
+    if (fetchError) throw fetchError;
+
+    if (!template) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    await pool.query('DELETE FROM email_templates WHERE id = $1', [id]);
+    const { error: deleteError } = await supabase
+      .from('email_templates')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
 
     await logAudit({
       actorId: req.session.userId,
       action: 'delete',
       targetType: 'email_template',
       targetId: id,
-      details: `Deleted email template: ${template.rows[0].name}`,
+      details: `Deleted email template: ${template.name}`,
       ipAddress: req.ip
     });
 

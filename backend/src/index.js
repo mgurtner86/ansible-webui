@@ -32,23 +32,34 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use(
-  session({
-    store: new PgSession({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || 'ansible-tower-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    },
-  })
-);
+let sessionStore;
+try {
+  sessionStore = new PgSession({
+    pool,
+    tableName: 'session',
+    createTableIfMissing: true,
+  });
+} catch (error) {
+  console.log('⚠️  Using memory session store');
+  sessionStore = null;
+}
+
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'ansible-tower-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
+};
+
+if (sessionStore) {
+  sessionConfig.store = sessionStore;
+}
+
+app.use(session(sessionConfig));
 
 const requireAuth = (req, res, next) => {
   if (!req.session.userId) {
@@ -122,12 +133,19 @@ const PORT = process.env.API_PORT || 3001;
 
 async function startServer() {
   try {
-    await pool.query('SELECT NOW()');
-    console.log('✅ Database connected successfully');
+    try {
+      await pool.query('SELECT NOW()');
+      console.log('✅ Local PostgreSQL connected successfully');
+      await runMigrations();
+    } catch (dbError) {
+      console.log('⚠️  Local PostgreSQL not available, using Supabase only');
+    }
 
-    await runMigrations();
-
-    startJobWorker();
+    try {
+      startJobWorker();
+    } catch (workerError) {
+      console.log('⚠️  Job worker not started:', workerError.message);
+    }
 
     app.listen(PORT, () => {
       console.log(`🚀 Ansible Tower API Server running on port ${PORT}`);

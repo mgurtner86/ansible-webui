@@ -1,4 +1,4 @@
-import { pool } from '../db/index.js';
+import { supabase } from '../db/index.js';
 
 export async function logAudit({
   actorId,
@@ -10,11 +10,19 @@ export async function logAudit({
   ipAddress = null
 }) {
   try {
-    await pool.query(
-      `INSERT INTO audit_logs (actor_id, action, target_type, target_id, details, status, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [actorId, action, targetType, targetId, details, status, ipAddress]
-    );
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        actor_id: actorId,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        details,
+        status,
+        ip_address: ipAddress
+      });
+
+    if (error) throw error;
   } catch (error) {
     console.error('Failed to log audit entry:', error);
   }
