@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Settings as SettingsIcon, Save, Mail, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Mail, Shield, Plus, Edit2, Trash2 } from 'lucide-react';
 
 interface Setting {
   id: string;
@@ -13,11 +13,24 @@ interface Setting {
   updated_at: string;
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  variables: string[];
+  description: string;
+  is_active: boolean;
+}
+
 export default function Settings() {
   const [settings, setSettings] = useState<Setting[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -26,8 +39,12 @@ export default function Settings() {
   async function loadData() {
     try {
       setLoading(true);
-      const settingsData = await api.settings.list();
+      const [settingsData, templatesData] = await Promise.all([
+        api.settings.list(),
+        api.emailTemplates.list(),
+      ]);
       setSettings(settingsData);
+      setTemplates(templatesData);
 
       const initialData: Record<string, any> = {};
       settingsData.forEach((setting: Setting) => {
@@ -135,6 +152,30 @@ export default function Settings() {
         />
       </div>
     );
+  }
+
+  async function handleDeleteTemplate(id: string) {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+
+    try {
+      await api.emailTemplates.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template');
+    }
+  }
+
+  async function handleToggleTemplate(template: EmailTemplate) {
+    try {
+      await api.emailTemplates.update(template.id, {
+        is_active: !template.is_active,
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Failed to toggle template:', error);
+      alert('Failed to toggle template');
+    }
   }
 
   return (
@@ -380,9 +421,216 @@ export default function Settings() {
                 ))}
               </div>
             </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-2">
+                  <Mail className="w-6 h-6 text-gray-700" />
+                  <h2 className="text-xl font-bold text-gray-900">Email Templates</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTemplate(null);
+                    setShowTemplateModal(true);
+                  }}
+                  className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Template</span>
+                </button>
+              </div>
+              <div className="space-y-3">
+                {templates.map((template) => (
+                  <div key={template.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="font-medium text-gray-900">{template.name}</h3>
+                          <button
+                            onClick={() => handleToggleTemplate(template)}
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              template.is_active
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {template.is_active ? 'Active' : 'Inactive'}
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          <strong>Subject:</strong> {template.subject}
+                        </p>
+                        {template.variables.length > 0 && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            <strong>Variables:</strong> {template.variables.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => {
+                            setEditingTemplate(template);
+                            setShowTemplateModal(true);
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {showTemplateModal && (
+        <TemplateModal
+          template={editingTemplate}
+          onClose={() => {
+            setShowTemplateModal(false);
+            setEditingTemplate(null);
+          }}
+          onSave={async (data) => {
+            try {
+              if (editingTemplate) {
+                await api.emailTemplates.update(editingTemplate.id, data);
+              } else {
+                await api.emailTemplates.create(data);
+              }
+              await loadData();
+              setShowTemplateModal(false);
+              setEditingTemplate(null);
+            } catch (error) {
+              console.error('Failed to save template:', error);
+              alert('Failed to save template');
+            }
+          }}
+        />
+      )}
     </Layout>
+  );
+}
+
+function TemplateModal({
+  template,
+  onClose,
+  onSave,
+}: {
+  template: EmailTemplate | null;
+  onClose: () => void;
+  onSave: (data: any) => void;
+}) {
+  const [name, setName] = useState(template?.name || '');
+  const [subject, setSubject] = useState(template?.subject || '');
+  const [body, setBody] = useState(template?.body || '');
+  const [description, setDescription] = useState(template?.description || '');
+  const [variables, setVariables] = useState(template?.variables.join(', ') || '');
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
+            {template ? 'Edit Email Template' : 'New Email Template'}
+          </h2>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="e.g., job_success"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="Brief description of this template"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="Email subject (use {{variable}} for placeholders)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Body (HTML)</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={10}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 font-mono text-sm"
+              placeholder="Email body in HTML format (use {{variable}} for placeholders)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Variables (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={variables}
+              onChange={(e) => setVariables(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="e.g., job_name, template_name, completed_at"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              List all variables used in the subject and body
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onSave({
+                name,
+                subject,
+                body,
+                description,
+                variables: variables.split(',').map(v => v.trim()).filter(Boolean),
+                is_active: true,
+              });
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Save Template
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
