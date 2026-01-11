@@ -126,6 +126,14 @@ export const api = {
     create: (data: any) => request('/settings', { method: 'POST', body: JSON.stringify(data) }),
     delete: (key: string) => request(`/settings/${key}`, { method: 'DELETE' }),
   },
+
+  emailTemplates: {
+    list: () => request('/email-templates'),
+    get: (id: string) => request(`/email-templates/${id}`),
+    create: (data: any) => request('/email-templates', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => request(`/email-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`/email-templates/${id}`, { method: 'DELETE' }),
+  },
 };
 
 export type { User, Session } from '../types';
