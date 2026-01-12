@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Plus, Trash2, Server, Key } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Plus, Trash2, Server, Key, Eye, EyeOff } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Host {
@@ -30,6 +30,9 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
   const [becomePassword, setBecomePassword] = useState('');
   const [credentialName, setCredentialName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showBecomePassword, setShowBecomePassword] = useState(false);
+  const [showSshKey, setShowSshKey] = useState(false);
 
   function addHost() {
     setHosts([...hosts, { hostname: '', vars: {} }]);
@@ -341,26 +344,52 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Password *
                       </label>
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {osType === 'linux' && authMethod === 'key' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        SSH Private Key *
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                        <span>SSH Private Key *</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowSshKey(!showSshKey)}
+                          className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                        >
+                          {showSshKey ? (
+                            <>
+                              <EyeOff className="w-3 h-3 mr-1" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Show
+                            </>
+                          )}
+                        </button>
                       </label>
                       <textarea
                         required
                         value={sshKey}
                         onChange={(e) => setSshKey(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm ${!showSshKey ? 'blur-sm' : ''}`}
                         rows={6}
                         placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
                       />
@@ -418,12 +447,21 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Become Password
                                 </label>
-                                <input
-                                  type="password"
-                                  value={becomePassword}
-                                  onChange={(e) => setBecomePassword(e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
+                                <div className="relative">
+                                  <input
+                                    type={showBecomePassword ? "text" : "password"}
+                                    value={becomePassword}
+                                    onChange={(e) => setBecomePassword(e.target.value)}
+                                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowBecomePassword(!showBecomePassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                  >
+                                    {showBecomePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
                               </div>
                             </>
                           )}

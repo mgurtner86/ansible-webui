@@ -24,7 +24,7 @@ router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.id, c.type, c.name, c.description, c.scope, c.created_at, c.updated_at,
-             u.full_name as owner_name
+             c.encrypted_secret, u.full_name as owner_name
       FROM credentials c
       LEFT JOIN users u ON c.owner_id = u.id
       WHERE c.id = $1
@@ -34,7 +34,19 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Credential not found' });
     }
 
-    res.json(result.rows[0]);
+    const credential = result.rows[0];
+
+    if (credential.encrypted_secret) {
+      try {
+        const decrypted = JSON.parse(Buffer.from(credential.encrypted_secret, 'base64').toString());
+        credential.secret = decrypted;
+      } catch (e) {
+        console.error('Error decrypting secret:', e);
+      }
+      delete credential.encrypted_secret;
+    }
+
+    res.json(credential);
   } catch (error) {
     console.error('Get credential error:', error);
     res.status(500).json({ error: 'Internal server error' });

@@ -82,8 +82,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       <aside
-        className={`fixed top-16 left-0 bottom-0 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-r border-slate-200/60 dark:border-slate-700/60 transition-transform duration-300 z-20 shadow-lg ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-16 left-0 bottom-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-r border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 z-20 shadow-lg ${
+          sidebarOpen ? 'w-72' : 'w-20'
         }`}
       >
         <nav className="p-4 space-y-2">
@@ -94,11 +94,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 to={item.path}
+                title={!sidebarOpen ? item.name : undefined}
                 className={`group flex items-center space-x-4 px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActive
                     ? 'bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800 shadow-sm'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800 hover:shadow-sm'
-                }`}
+                } ${!sidebarOpen ? 'justify-center px-2' : ''}`}
               >
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-lg ${item.color} shadow-md transition-transform duration-200 ${
@@ -107,13 +108,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 >
                   <Icon className="w-5 h-5 text-white" />
                 </div>
-                <span
-                  className={`text-sm font-medium tracking-wide ${
-                    isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
-                  }`}
-                >
-                  {item.name}
-                </span>
+                {sidebarOpen && (
+                  <span
+                    className={`text-sm font-medium tracking-wide ${
+                      isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -121,11 +124,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main
-        className={`pt-20 transition-all duration-300 ${
-          sidebarOpen ? 'pl-76' : 'pl-4'
-        } pr-4 pb-8`}
+        className={`pt-20 transition-all duration-300 pr-4 pb-8 ${
+          sidebarOpen ? 'pl-76' : 'pl-24'
+        }`}
       >
-        <div className={`${sidebarOpen ? 'ml-72' : 'ml-0'} transition-all duration-300`}>
+        <div className={`${sidebarOpen ? 'ml-72' : 'ml-20'} transition-all duration-300`}>
           {children}
         </div>
       </main>

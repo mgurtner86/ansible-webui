@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Key, X, Trash2, Pencil } from 'lucide-react';
+import { Plus, Key, X, Trash2, Pencil, Eye, EyeOff } from 'lucide-react';
 
 export default function Credentials() {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [formData, setFormData] = useState({
     type: 'ssh',
     name: '',
@@ -35,21 +37,29 @@ export default function Credentials() {
     }
   }
 
-  function handleEdit(credential: any) {
-    setEditingId(credential.id);
-    setFormData({
-      type: credential.type,
-      name: credential.name,
-      description: credential.description || '',
-      secret: { username: '', password: '', privateKey: '' },
-      scope: credential.scope,
-    });
-    setShowForm(true);
+  async function handleEdit(credential: any) {
+    try {
+      const fullCredential = await api.credentials.get(credential.id);
+      setEditingId(credential.id);
+      setFormData({
+        type: fullCredential.type,
+        name: fullCredential.name,
+        description: fullCredential.description || '',
+        secret: fullCredential.secret || { username: '', password: '', privateKey: '' },
+        scope: fullCredential.scope,
+      });
+      setShowForm(true);
+    } catch (error) {
+      console.error('Failed to load credential details:', error);
+      alert('Failed to load credential details');
+    }
   }
 
   function handleCancel() {
     setShowForm(false);
     setEditingId(null);
+    setShowPassword(false);
+    setShowPrivateKey(false);
     setFormData({
       type: 'ssh',
       name: '',
@@ -176,25 +186,53 @@ export default function Credentials() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                      <input
-                        type="password"
-                        value={formData.secret.password}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          secret: { ...formData.secret, password: e.target.value }
-                        })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={formData.secret.password}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            secret: { ...formData.secret, password: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Private Key</label>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                        <span>Private Key</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPrivateKey(!showPrivateKey)}
+                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center"
+                        >
+                          {showPrivateKey ? (
+                            <>
+                              <EyeOff className="w-3 h-3 mr-1" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Show
+                            </>
+                          )}
+                        </button>
+                      </label>
                       <textarea
                         value={formData.secret.privateKey}
                         onChange={(e) => setFormData({
                           ...formData,
                           secret: { ...formData.secret, privateKey: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono text-xs"
+                        className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono text-xs ${!showPrivateKey ? 'blur-sm' : ''}`}
                         rows={4}
                         placeholder="-----BEGIN RSA PRIVATE KEY-----"
                       />
