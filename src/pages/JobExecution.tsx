@@ -34,15 +34,17 @@ export default function JobExecution() {
     }
   }, [output, isLiveOutputExpanded]);
 
+  useEffect(() => {
+    if (job && (job.status === 'completed' || job.status === 'failed' || job.status === 'canceled')) {
+      setIsLiveOutputExpanded(false);
+    }
+  }, [job?.status]);
+
   async function loadJob() {
     try {
       const data = await api.jobs.get(id!);
       setJob(data);
       setOutput(data.output || 'Waiting for job to start...\n');
-
-      if (data.status === 'completed' || data.status === 'failed' || data.status === 'canceled') {
-        setIsLiveOutputExpanded(false);
-      }
     } catch (error) {
       console.error('Failed to load job:', error);
     } finally {
@@ -58,7 +60,6 @@ export default function JobExecution() {
         setOutput(data.output || 'Waiting for job to start...\n');
 
         if (data.status === 'completed' || data.status === 'failed' || data.status === 'canceled') {
-          setIsLiveOutputExpanded(false);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
