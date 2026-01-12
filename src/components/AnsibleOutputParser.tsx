@@ -5,6 +5,10 @@ interface AnsibleTask {
   status: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable' | 'running';
   host?: string;
   details?: string;
+  stdout?: string;
+  stderr?: string;
+  msg?: string;
+  results?: any[];
 }
 
 interface AnsiblePlay {
@@ -36,59 +40,139 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
   let currentTask: AnsibleTask | null = null;
   let inRecap = false;
   const recap: AnsibleRecap = {};
+  let collectingOutput = false;
+  let outputBuffer: string[] = [];
+  let outputType: 'stdout' | 'stderr' | 'msg' | null = null;
+
+  const finishOutputCollection = () => {
+    if (collectingOutput && currentTask && outputType && outputBuffer.length > 0) {
+      const content = outputBuffer.join('\n').trim();
+      if (content) {
+        currentTask[outputType] = content;
+      }
+    }
+    collectingOutput = false;
+    outputBuffer = [];
+    outputType = null;
+  };
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i];
+    const trimmedLine = line.trim();
 
-    if (line.startsWith('PLAY [')) {
-      const playName = line.match(/PLAY \[(.*?)\]/)?.[1] || 'Unknown Play';
+    if (trimmedLine.startsWith('PLAY [')) {
+      finishOutputCollection();
+      const playName = trimmedLine.match(/PLAY \[(.*?)\]/)?.[1] || 'Unknown Play';
       currentPlay = { name: playName, tasks: [] };
       plays.push(currentPlay);
       currentTask = null;
-    } else if (line.startsWith('TASK [')) {
-      const taskName = line.match(/TASK \[(.*?)\]/)?.[1] || 'Unknown Task';
+    } else if (trimmedLine.startsWith('TASK [')) {
+      finishOutputCollection();
+      const taskName = trimmedLine.match(/TASK \[(.*?)\]/)?.[1] || 'Unknown Task';
       currentTask = { name: taskName, status: 'running' };
       if (currentPlay) {
         currentPlay.tasks.push(currentTask);
       }
-    } else if (line.startsWith('ok:')) {
-      const host = line.match(/ok: \[(.*?)\]/)?.[1];
+    } else if (trimmedLine.startsWith('ok:') || trimmedLine.startsWith('changed:') ||
+               trimmedLine.startsWith('failed:') || trimmedLine.startsWith('fatal:') ||
+               trimmedLine.startsWith('skipping:')) {
+      finishOutputCollection();
+
+      let status: AnsibleTask['status'] = 'ok';
+      let host: string | undefined;
+
+      if (trimmedLine.startsWith('ok:')) {
+        status = 'ok';
+        host = trimmedLine.match(/ok: \[(.*?)\]/)?.[1];
+      } else if (trimmedLine.startsWith('changed:')) {
+        status = 'changed';
+        host = trimmedLine.match(/changed: \[(.*?)\]/)?.[1];
+      } else if (trimmedLine.startsWith('failed:')) {
+        status = 'failed';
+        host = trimmedLine.match(/failed: \[(.*?)\]/)?.[1];
+      } else if (trimmedLine.startsWith('fatal:')) {
+        status = 'failed';
+        host = trimmedLine.match(/fatal: \[(.*?)\]/)?.[1];
+      } else if (trimmedLine.startsWith('skipping:')) {
+        status = 'skipped';
+        host = trimmedLine.match(/skipping: \[(.*?)\]/)?.[1];
+      }
+
       if (currentTask) {
-        currentTask.status = 'ok';
+        currentTask.status = status;
         currentTask.host = host;
       }
-    } else if (line.startsWith('changed:')) {
-      const host = line.match(/changed: \[(.*?)\]/)?.[1];
-      if (currentTask) {
-        currentTask.status = 'changed';
-        currentTask.host = host;
-      }
-    } else if (line.startsWith('failed:')) {
-      const host = line.match(/failed: \[(.*?)\]/)?.[1];
-      if (currentTask) {
-        currentTask.status = 'failed';
-        currentTask.host = host;
-      }
-    } else if (line.startsWith('skipping:')) {
-      const host = line.match(/skipping: \[(.*?)\]/)?.[1];
-      if (currentTask) {
-        currentTask.status = 'skipped';
-        currentTask.host = host;
-      }
-    } else if (line.startsWith('fatal:')) {
-      const host = line.match(/fatal: \[(.*?)\]/)?.[1];
-      if (currentTask) {
-        currentTask.status = 'failed';
-        currentTask.host = host;
-        const msgMatch = lines[i + 1]?.match(/"msg":\s*"(.*?)"/);
-        if (msgMatch) {
-          currentTask.details = msgMatch[1];
+
+      const jsonStartIdx = trimmedLine.indexOf('{');
+      if (jsonStartIdx !== -1) {
+        try {
+          const jsonStr = trimmedLine.substring(jsonStartIdx);
+          let braceCount = 0;
+          let jsonEndIdx = -1;
+
+          for (let j = 0; j < jsonStr.length; j++) {
+            if (jsonStr[j] === '{') braceCount++;
+            if (jsonStr[j] === '}') braceCount--;
+            if (braceCount === 0) {
+              jsonEndIdx = j;
+              break;
+            }
+          }
+
+          if (jsonEndIdx !== -1) {
+            const jsonContent = JSON.parse(jsonStr.substring(0, jsonEndIdx + 1));
+
+            if (currentTask) {
+              if (jsonContent.stdout) currentTask.stdout = jsonContent.stdout;
+              if (jsonContent.stderr) currentTask.stderr = jsonContent.stderr;
+              if (jsonContent.msg) currentTask.msg = jsonContent.msg;
+              if (jsonContent.results) currentTask.results = jsonContent.results;
+            }
+          }
+        } catch (e) {
         }
       }
-    } else if (line.includes('PLAY RECAP')) {
+    } else if (trimmedLine.match(/^"?stdout"?\s*:/)) {
+      finishOutputCollection();
+      collectingOutput = true;
+      outputType = 'stdout';
+      const match = trimmedLine.match(/^"?stdout"?\s*:\s*"?(.*)$/);
+      if (match && match[1] && !match[1].startsWith('"')) {
+        outputBuffer.push(match[1].replace(/",?\s*$/, ''));
+      }
+    } else if (trimmedLine.match(/^"?stderr"?\s*:/)) {
+      finishOutputCollection();
+      collectingOutput = true;
+      outputType = 'stderr';
+      const match = trimmedLine.match(/^"?stderr"?\s*:\s*"?(.*)$/);
+      if (match && match[1] && !match[1].startsWith('"')) {
+        outputBuffer.push(match[1].replace(/",?\s*$/, ''));
+      }
+    } else if (trimmedLine.match(/^"?msg"?\s*:/)) {
+      finishOutputCollection();
+      collectingOutput = true;
+      outputType = 'msg';
+      const match = trimmedLine.match(/^"?msg"?\s*:\s*"?(.*)$/);
+      if (match && match[1]) {
+        const content = match[1].replace(/^"/, '').replace(/",?\s*$/, '');
+        if (content && currentTask) {
+          currentTask.msg = content;
+        }
+      }
+      collectingOutput = false;
+    } else if (collectingOutput && !trimmedLine.startsWith('}') && !trimmedLine.startsWith('"')) {
+      const cleaned = trimmedLine.replace(/^"/, '').replace(/",?\s*$/, '').replace(/\\n/g, '\n');
+      if (cleaned && cleaned !== ',') {
+        outputBuffer.push(cleaned);
+      }
+    } else if (trimmedLine === '}' || trimmedLine === '},') {
+      finishOutputCollection();
+    } else if (trimmedLine.includes('PLAY RECAP')) {
+      finishOutputCollection();
       inRecap = true;
-    } else if (inRecap && line.includes(':')) {
-      const recapMatch = line.match(/^(\S+)\s+:\s+ok=(\d+)\s+changed=(\d+)\s+unreachable=(\d+)\s+failed=(\d+)\s+skipped=(\d+)\s+rescued=(\d+)\s+ignored=(\d+)/);
+      currentTask = null;
+    } else if (inRecap && trimmedLine.includes(':')) {
+      const recapMatch = trimmedLine.match(/^(\S+)\s*:\s+ok=(\d+)\s+changed=(\d+)\s+unreachable=(\d+)\s+failed=(\d+)\s+skipped=(\d+)\s+rescued=(\d+)\s+ignored=(\d+)/);
       if (recapMatch) {
         const [, host, ok, changed, unreachable, failed, skipped, rescued, ignored] = recapMatch;
         recap[host] = {
@@ -103,6 +187,8 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
       }
     }
   }
+
+  finishOutputCollection();
 
   return {
     plays,
@@ -177,28 +263,79 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                   play.tasks.map((task, taskIndex) => (
                     <div
                       key={taskIndex}
-                      className={`flex items-start space-x-3 p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
+                      className={`p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
                     >
-                      <TaskStatusIcon status={task.status} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                            {task.name}
-                          </p>
-                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 ml-2">
-                            {task.status.toUpperCase()}
-                          </span>
+                      <div className="flex items-start space-x-3">
+                        <TaskStatusIcon status={task.status} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                              {task.name}
+                            </p>
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 ml-2">
+                              {task.status.toUpperCase()}
+                            </span>
+                          </div>
+                          {task.host && (
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                              Host: {task.host}
+                            </p>
+                          )}
+                          {task.details && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
+                              {task.details}
+                            </p>
+                          )}
+
+                          {task.msg && (
+                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+                              <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">Message:</div>
+                              <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-mono">
+                                {task.msg}
+                              </pre>
+                            </div>
+                          )}
+
+                          {task.stdout && (
+                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
+                              <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">Output (stdout):</div>
+                              <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                                {task.stdout}
+                              </pre>
+                            </div>
+                          )}
+
+                          {task.stderr && (
+                            <div className="mt-2 p-2 bg-red-50 dark:bg-red-950/30 rounded border border-red-200 dark:border-red-800">
+                              <div className="text-xs font-semibold text-red-900 dark:text-red-300 mb-1">Error Output (stderr):</div>
+                              <pre className="text-xs text-red-800 dark:text-red-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                                {task.stderr}
+                              </pre>
+                            </div>
+                          )}
+
+                          {task.results && task.results.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {task.results.map((result: any, idx: number) => (
+                                <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
+                                  <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">
+                                    Result {idx + 1}:
+                                  </div>
+                                  {result.stdout && (
+                                    <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                                      {result.stdout}
+                                    </pre>
+                                  )}
+                                  {result.msg && (
+                                    <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
+                                      {result.msg}
+                                    </pre>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        {task.host && (
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                            Host: {task.host}
-                          </p>
-                        )}
-                        {task.details && (
-                          <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
-                            {task.details}
-                          </p>
-                        )}
                       </div>
                     </div>
                   ))
