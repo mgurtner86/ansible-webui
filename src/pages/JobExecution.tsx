@@ -263,7 +263,7 @@ export default function JobExecution() {
             </div>
           </div>
 
-          <AnsibleOutputParser output={output} />
+          <AnsibleOutputParser output={job.output_json ? JSON.stringify(job.output_json) : output} />
 
           {job.status === 'completed' && (
             <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 rounded-xl">
