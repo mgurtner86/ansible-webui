@@ -65,26 +65,33 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="relative max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-lg mb-4">
-            <Server className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 shadow-xl">
+            <Server className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Ansible Tower</h2>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <h2 className="text-5xl font-light tracking-tight text-slate-800">
+            Ansible <span className="font-semibold">Tower</span>
+          </h2>
+          <p className="mt-3 text-slate-500 text-lg">Sign in to your account</p>
         </div>
 
-        <div className="bg-white p-8 rounded-xl shadow-lg">
+        <div className="bg-white/80 backdrop-blur-md p-10 rounded-2xl shadow-2xl border border-slate-200/60">
           {microsoftEnabled && (
-            <div className="flex border-b border-gray-200 mb-6">
+            <div className="flex bg-slate-100/50 rounded-xl p-1 mb-8">
               <button
                 type="button"
                 onClick={() => setLoginMethod('local')}
-                className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   loginMethod === 'local'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 Local Login
@@ -92,10 +99,10 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setLoginMethod('microsoft')}
-                className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   loginMethod === 'microsoft'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 Microsoft 365
@@ -104,16 +111,16 @@ export default function Login() {
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-700 px-5 py-4 rounded-xl text-sm mb-6 shadow-sm">
               {error}
             </div>
           )}
 
           {loginMethod === 'local' ? (
             <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                     Email address
                   </label>
                   <input
@@ -122,13 +129,13 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-5 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 backdrop-blur-sm"
                     placeholder="admin@ansible-tower.local"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                     Password
                   </label>
                   <input
@@ -137,7 +144,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-5 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 backdrop-blur-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -146,33 +153,33 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center py-4 px-6 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
 
-              <div className="text-center text-sm text-gray-600">
-                <p>Default credentials:</p>
-                <p className="mt-1 font-mono text-xs bg-gray-100 px-3 py-2 rounded">
+              <div className="text-center text-sm">
+                <p className="text-slate-600 mb-2">Default credentials:</p>
+                <div className="font-mono text-xs bg-slate-100 px-4 py-3 rounded-lg text-slate-700">
                   admin@ansible-tower.local / admin123
-                </p>
+                </div>
               </div>
             </form>
           ) : (
             <div className="space-y-6">
-              <p className="text-sm text-gray-600 text-center">
+              <p className="text-sm text-slate-600 text-center">
                 Sign in with your Microsoft 365 account
               </p>
               <button
                 onClick={handleMicrosoftLogin}
                 disabled={loading}
-                className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center items-center py-4 px-6 border-2 border-slate-300 rounded-xl shadow-sm text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:shadow-md hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {loading ? (
                   'Redirecting...'
                 ) : (
                   <>
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 21 21">
+                    <svg className="w-5 h-5 mr-3" viewBox="0 0 21 21">
                       <rect x="1" y="1" width="9" height="9" fill="#f25022" />
                       <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
                       <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
