@@ -1,4 +1,5 @@
-import { CheckCircle, XCircle, AlertCircle, MinusCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, MinusCircle, Clock, ChevronRight, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 
 interface AnsibleTask {
   name: string;
@@ -32,6 +33,91 @@ interface AnsibleRecap {
 interface ParsedAnsibleOutput {
   plays: AnsiblePlay[];
   recap?: AnsibleRecap;
+}
+
+function JsonViewer({ data, depth = 0 }: { data: any; depth?: number }) {
+  const [expanded, setExpanded] = useState(depth < 2);
+
+  if (data === null || data === undefined) {
+    return <span className="text-slate-400 dark:text-slate-500 italic">null</span>;
+  }
+
+  if (typeof data === 'boolean') {
+    return <span className="text-blue-600 dark:text-blue-400 font-medium">{data.toString()}</span>;
+  }
+
+  if (typeof data === 'number') {
+    return <span className="text-green-600 dark:text-green-400 font-medium">{data}</span>;
+  }
+
+  if (typeof data === 'string') {
+    return <span className="text-orange-600 dark:text-orange-400">"{data}"</span>;
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return <span className="text-slate-500 dark:text-slate-400">[]</span>;
+    }
+
+    return (
+      <div className="ml-0">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="inline-flex items-center space-x-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+        >
+          {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          <span className="text-sm font-medium">Array ({data.length} items)</span>
+        </button>
+        {expanded && (
+          <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 dark:border-slate-700 pl-3">
+            {data.map((item, index) => (
+              <div key={index} className="flex items-start space-x-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">[{index}]</span>
+                <div className="flex-1">
+                  <JsonViewer data={item} depth={depth + 1} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      return <span className="text-slate-500 dark:text-slate-400">{'{}'}</span>;
+    }
+
+    return (
+      <div className="ml-0">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="inline-flex items-center space-x-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+        >
+          {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          <span className="text-sm font-medium">Object ({keys.length} keys)</span>
+        </button>
+        {expanded && (
+          <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 dark:border-slate-700 pl-3">
+            {keys.map((key) => (
+              <div key={key} className="flex items-start space-x-2">
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-semibold mt-0.5 whitespace-nowrap">
+                  {key}:
+                </span>
+                <div className="flex-1 min-w-0">
+                  <JsonViewer data={data[key]} depth={depth + 1} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return <span className="text-slate-600 dark:text-slate-400">{String(data)}</span>;
 }
 
 function parseJsonOutput(jsonData: any): ParsedAnsibleOutput {
@@ -450,11 +536,13 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                           )}
 
                           {task.result && !task.stdout && !task.stderr && !task.msg && !task.results && (
-                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
-                              <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">Task Result:</div>
-                              <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto max-h-96 overflow-y-auto">
-                                {JSON.stringify(task.result, null, 2)}
-                              </pre>
+                            <div className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 max-h-96 overflow-y-auto">
+                              <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                                Task Result
+                              </div>
+                              <div className="text-xs">
+                                <JsonViewer data={task.result} />
+                              </div>
                             </div>
                           )}
                         </div>
