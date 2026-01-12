@@ -2,18 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, FileText, X, Trash2, Pencil, Play } from 'lucide-react';
+import { Plus, FileText, X, Trash2, Pencil } from 'lucide-react';
 
 export default function Playbooks() {
-  const navigate = useNavigate();
   const [playbooks, setPlaybooks] = useState<any[]>([]);
-  const [inventories, setInventories] = useState<any[]>([]);
-  const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [showRunDialog, setShowRunDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [runningPlaybookId, setRunningPlaybookId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,15 +21,9 @@ export default function Playbooks() {
         msg: "Hello from Ansible!"
 `,
   });
-  const [runConfig, setRunConfig] = useState({
-    inventory_id: '',
-    credential_id: '',
-  });
 
   useEffect(() => {
     loadPlaybooks();
-    loadInventories();
-    loadCredentials();
   }, []);
 
   async function loadPlaybooks() {
@@ -45,24 +34,6 @@ export default function Playbooks() {
       console.error('Failed to load playbooks:', error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadInventories() {
-    try {
-      const data = await api.inventories.list();
-      setInventories(data);
-    } catch (error) {
-      console.error('Failed to load inventories:', error);
-    }
-  }
-
-  async function loadCredentials() {
-    try {
-      const data = await api.credentials.list();
-      setCredentials(data);
-    } catch (error) {
-      console.error('Failed to load credentials:', error);
     }
   }
 
@@ -93,12 +64,6 @@ export default function Playbooks() {
     });
   }
 
-  function handleRunClick(playbookId: string) {
-    setRunningPlaybookId(playbookId);
-    setRunConfig({ inventory_id: '', credential_id: '' });
-    setShowRunDialog(true);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -112,33 +77,6 @@ export default function Playbooks() {
     } catch (error) {
       console.error('Failed to save playbook:', error);
       alert('Failed to save playbook');
-    }
-  }
-
-  async function handleRunSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!runningPlaybookId || !runConfig.inventory_id) return;
-
-    try {
-      const template = {
-        name: 'Quick Run',
-        playbook_id: runningPlaybookId,
-        inventory_id: runConfig.inventory_id,
-        credential_id: runConfig.credential_id || undefined,
-        forks: 5,
-        verbosity: 0,
-        become: false,
-      };
-
-      const createdTemplate = await api.templates.create(template);
-      const job = await api.templates.launch(createdTemplate.id, {});
-
-      setShowRunDialog(false);
-      setRunningPlaybookId(null);
-      navigate(`/jobs/${job.id}`);
-    } catch (error) {
-      console.error('Failed to run playbook:', error);
-      alert('Failed to run playbook');
     }
   }
 
@@ -249,70 +187,6 @@ export default function Playbooks() {
           </div>
         )}
 
-        {showRunDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-2xl border border-slate-200/60 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">Run Playbook</h2>
-                <button
-                  onClick={() => setShowRunDialog(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleRunSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inventory *</label>
-                  <select
-                    required
-                    value={runConfig.inventory_id}
-                    onChange={(e) => setRunConfig({ ...runConfig, inventory_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">Select an inventory...</option>
-                    {inventories.map((inventory) => (
-                      <option key={inventory.id} value={inventory.id}>
-                        {inventory.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Credential (Optional)</label>
-                  <select
-                    value={runConfig.credential_id}
-                    onChange={(e) => setRunConfig({ ...runConfig, credential_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">No credential</option>
-                    {credentials.map((credential) => (
-                      <option key={credential.id} value={credential.id}>
-                        {credential.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowRunDialog(false)}
-                    className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-md transition-all"
-                  >
-                    Run Now
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 gap-4">
           {playbooks.map((playbook) => (
             <div key={playbook.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-xl transition-shadow p-6 border border-slate-200/60 dark:border-slate-700/60">
@@ -328,13 +202,6 @@ export default function Playbooks() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleRunClick(playbook.id)}
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-md transition-all"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Run
-                  </button>
                   <button
                     onClick={() => handleEdit(playbook)}
                     className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-xl transition-colors"

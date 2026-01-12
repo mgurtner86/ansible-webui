@@ -2,16 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Play, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { Play, CheckCircle, XCircle, Clock, Eye, X } from 'lucide-react';
 
 export default function Jobs() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [showLaunchDialog, setShowLaunchDialog] = useState(false);
 
   useEffect(() => {
     loadJobs();
+    loadTemplates();
     const interval = setInterval(loadJobs, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -24,6 +27,26 @@ export default function Jobs() {
       console.error('Failed to load jobs:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTemplates() {
+    try {
+      const data = await api.templates.list();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  }
+
+  async function handleLaunchTemplate(templateId: string) {
+    try {
+      const job = await api.templates.launch(templateId, {});
+      setShowLaunchDialog(false);
+      navigate(`/jobs/${job.id}`);
+    } catch (error) {
+      console.error('Failed to launch template:', error);
+      alert('Failed to launch template');
     }
   }
 
@@ -87,6 +110,13 @@ export default function Jobs() {
             <h1 className="text-4xl font-light tracking-tight text-slate-800 dark:text-slate-100">Jobs</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Job execution history and live monitoring</p>
           </div>
+          <button
+            onClick={() => setShowLaunchDialog(true)}
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transition-all"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Launch Template
+          </button>
         </div>
 
         <div className="flex items-center space-x-3 bg-white dark:bg-slate-800 rounded-xl p-2 shadow-md border border-slate-200/60 dark:border-slate-700/60 w-fit">
@@ -115,6 +145,61 @@ export default function Jobs() {
             Failed
           </button>
         </div>
+
+        {showLaunchDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-slate-200/60 dark:border-slate-700/60">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">Launch Template</h2>
+                <button
+                  onClick={() => setShowLaunchDialog(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {templates.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No templates available. Create a template first.
+                  </div>
+                ) : (
+                  templates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer group"
+                      onClick={() => handleLaunchTemplate(template.id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                            {template.name}
+                          </h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{template.description}</p>
+                          <div className="flex items-center space-x-4 mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span>Playbook: {template.playbook_name}</span>
+                            <span>•</span>
+                            <span>Inventory: {template.inventory_name}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLaunchTemplate(template.id);
+                          }}
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-md transition-all"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Launch
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {filteredJobs.map((job) => (

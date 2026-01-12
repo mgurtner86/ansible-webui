@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Plus, Play, X, Trash2, Pencil } from 'lucide-react';
+import { Plus, X, Trash2, Pencil } from 'lucide-react';
 import type { Template } from '../types';
 
 export default function Templates() {
@@ -113,16 +113,6 @@ export default function Templates() {
     } catch (error) {
       console.error('Failed to save template:', error);
       alert('Failed to save template');
-    }
-  }
-
-  async function handleLaunch(id: string) {
-    try {
-      const job = await api.templates.launch(id, {});
-      navigate(`/jobs/${job.id}`);
-    } catch (error) {
-      console.error('Failed to launch template:', error);
-      alert('Failed to launch template');
     }
   }
 
@@ -318,13 +308,6 @@ export default function Templates() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleLaunch(template.id)}
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-md transition-all"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Launch
-                  </button>
                   <button
                     onClick={() => handleEdit(template)}
                     className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
