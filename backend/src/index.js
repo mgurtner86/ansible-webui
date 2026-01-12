@@ -19,6 +19,7 @@ import hostsRoutes from './routes/hosts.js';
 import auditRoutes from './routes/audit.js';
 import settingsRoutes from './routes/settings.js';
 import emailTemplatesRoutes from './routes/email-templates.js';
+import ansibleCollectionsRoutes from './routes/ansible-collections.js';
 
 dotenv.config();
 
@@ -80,6 +81,7 @@ app.use('/api/hosts', requireAuth, hostsRoutes);
 app.use('/api/audit', requireAuth, auditRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/email-templates', requireAuth, emailTemplatesRoutes);
+app.use('/api/ansible-collections', requireAuth, ansibleCollectionsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -134,6 +134,12 @@ export const api = {
     update: (id: string, data: any) => request(`/email-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/email-templates/${id}`, { method: 'DELETE' }),
   },
+
+  ansibleCollections: {
+    list: () => request('/ansible-collections'),
+    install: (collection: string) => request('/ansible-collections/install', { method: 'POST', body: JSON.stringify({ collection }) }),
+    delete: (collection: string) => request(`/ansible-collections/${collection}`, { method: 'DELETE' }),
+  },
 };
 
 export type { User, Session } from '../types';

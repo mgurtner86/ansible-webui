@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Settings as SettingsIcon, Save, Mail, Shield, Plus, CreditCard as Edit2, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Mail, Shield, Plus, CreditCard as Edit2, Trash2, Package } from 'lucide-react';
 
 interface Setting {
   id: string;
@@ -23,14 +23,23 @@ interface EmailTemplate {
   is_active: boolean;
 }
 
+interface AnsibleCollection {
+  name: string;
+  version: string;
+  path: string;
+}
+
 export default function Settings() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [collections, setCollections] = useState<AnsibleCollection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [newCollection, setNewCollection] = useState('');
+  const [installingCollection, setInstallingCollection] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -39,12 +48,14 @@ export default function Settings() {
   async function loadData() {
     try {
       setLoading(true);
-      const [settingsData, templatesData] = await Promise.all([
+      const [settingsData, templatesData, collectionsData] = await Promise.all([
         api.settings.list(),
         api.emailTemplates.list(),
+        api.ansibleCollections.list().catch(() => []),
       ]);
       setSettings(settingsData);
       setTemplates(templatesData);
+      setCollections(collectionsData);
 
       const initialData: Record<string, any> = {};
       settingsData.forEach((setting: Setting) => {
@@ -175,6 +186,35 @@ export default function Settings() {
     } catch (error) {
       console.error('Failed to toggle template:', error);
       alert('Failed to toggle template');
+    }
+  }
+
+  async function handleInstallCollection() {
+    if (!newCollection.trim()) return;
+
+    try {
+      setInstallingCollection(true);
+      await api.ansibleCollections.install(newCollection);
+      setNewCollection('');
+      await loadData();
+      alert(`Collection ${newCollection} installed successfully`);
+    } catch (error) {
+      console.error('Failed to install collection:', error);
+      alert('Failed to install collection');
+    } finally {
+      setInstallingCollection(false);
+    }
+  }
+
+  async function handleDeleteCollection(collection: string) {
+    if (!confirm(`Are you sure you want to remove collection ${collection}?`)) return;
+
+    try {
+      await api.ansibleCollections.delete(collection);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to remove collection:', error);
+      alert('Failed to remove collection');
     }
   }
 
@@ -521,6 +561,87 @@ export default function Settings() {
                     />
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-8 border border-slate-200/60 dark:border-slate-700/60">
+              <div className="flex items-center space-x-3 mb-6">
+                <Package className="w-7 h-7 text-slate-900 dark:text-slate-100" />
+                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">Ansible Collections</h2>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                Install additional Ansible collections and modules for extended functionality
+              </p>
+
+              <div className="mb-6">
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={newCollection}
+                    onChange={(e) => setNewCollection(e.target.value)}
+                    placeholder="e.g., community.general, ansible.posix"
+                    className="flex-1 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleInstallCollection();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleInstallCollection}
+                    disabled={installingCollection || !newCollection.trim()}
+                    className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 shadow-md transition-all duration-200"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>{installingCollection ? 'Installing...' : 'Install'}</span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  Enter the collection name (e.g., community.general, ansible.posix, community.windows)
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {collections.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No collections installed yet
+                  </div>
+                ) : (
+                  collections.map((collection) => (
+                    <div key={collection.name} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-slate-50 dark:bg-slate-700/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <div>
+                              <h3 className="font-medium text-slate-900 dark:text-slate-100">{collection.name}</h3>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Version: {collection.version}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCollection(collection.name)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Popular Collections</h3>
+                <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-disc list-inside">
+                  <li><strong>community.general</strong> - General purpose modules and plugins</li>
+                  <li><strong>ansible.posix</strong> - POSIX system modules (ACL, SELinux, etc.)</li>
+                  <li><strong>community.windows</strong> - Windows automation modules</li>
+                  <li><strong>community.docker</strong> - Docker container management</li>
+                  <li><strong>community.kubernetes</strong> - Kubernetes cluster management</li>
+                </ul>
               </div>
             </div>
 
