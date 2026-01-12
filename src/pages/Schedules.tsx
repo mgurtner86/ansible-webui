@@ -100,7 +100,7 @@ export default function Schedules() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
       </Layout>
     );
@@ -111,12 +111,12 @@ export default function Schedules() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Schedules</h1>
-            <p className="text-gray-600 mt-1">Automated job execution schedules</p>
+            <h1 className="text-4xl font-light text-slate-900 dark:text-slate-100">Schedules</h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">Automated job execution schedules</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md transition-all"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Schedule
@@ -124,27 +124,27 @@ export default function Schedules() {
         </div>
 
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">
                   {editingId ? 'Edit Schedule' : 'Create New Schedule'}
                 </h2>
                 <button
                   onClick={handleCancel}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Template</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Template</label>
                   <select
                     required
                     value={formData.template_id}
                     onChange={(e) => setFormData({ ...formData, template_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   >
                     <option value="">Select a template...</option>
                     {templates.map((template) => (
@@ -155,43 +155,43 @@ export default function Schedules() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                     rows={2}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cron Expression</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cron Expression</label>
                   <input
                     type="text"
                     required
                     value={formData.cron}
                     onChange={(e) => setFormData({ ...formData, cron: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                     placeholder="0 0 * * *"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Daily at midnight: 0 0 * * *</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Daily at midnight: 0 0 * * *</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
                   <input
                     type="text"
                     value={formData.timezone}
                     onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <div className="flex items-center">
@@ -200,9 +200,9 @@ export default function Schedules() {
                     id="enabled"
                     checked={formData.enabled}
                     onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500"
                   />
-                  <label htmlFor="enabled" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="enabled" className="ml-2 text-sm text-slate-700 dark:text-slate-300">
                     Enabled
                   </label>
                 </div>
@@ -210,13 +210,13 @@ export default function Schedules() {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md transition-all"
                   >
                     {editingId ? 'Update' : 'Create'}
                   </button>
@@ -228,16 +228,16 @@ export default function Schedules() {
 
         <div className="grid grid-cols-1 gap-4">
           {schedules.map((schedule) => (
-            <div key={schedule.id} className="bg-white rounded-lg shadow p-6">
+            <div key={schedule.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
-                  <Calendar className="w-5 h-5 text-gray-400 mt-1" />
+                  <Calendar className="w-5 h-5 text-slate-400 dark:text-slate-500 mt-1" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{schedule.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">Template: {schedule.template_name}</p>
-                    <div className="flex items-center space-x-3 mt-2 text-sm text-gray-500">
-                      <span className="font-mono bg-gray-100 px-2 py-1 rounded">{schedule.cron}</span>
-                      <span className={`px-2 py-1 rounded ${schedule.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{schedule.name}</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Template: {schedule.template_name}</p>
+                    <div className="flex items-center space-x-3 mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      <span className="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-900 dark:text-slate-100">{schedule.cron}</span>
+                      <span className={`px-2 py-1 rounded ${schedule.enabled ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                         {schedule.enabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
@@ -246,14 +246,14 @@ export default function Schedules() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleEdit(schedule)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors"
                     title="Edit schedule"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(schedule.id, schedule.name)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                     title="Delete schedule"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -263,7 +263,7 @@ export default function Schedules() {
             </div>
           ))}
           {schedules.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
               No schedules yet. Create one to get started.
             </div>
           )}

@@ -54,16 +54,16 @@ export default function Audit() {
   }
 
   function getActionColor(action: string) {
-    if (action.includes('create')) return 'bg-green-100 text-green-800';
-    if (action.includes('update')) return 'bg-blue-100 text-blue-800';
-    if (action.includes('delete')) return 'bg-red-100 text-red-800';
-    if (action.includes('login')) return 'bg-purple-100 text-purple-800';
-    if (action.includes('launch')) return 'bg-orange-100 text-orange-800';
-    return 'bg-gray-100 text-gray-800';
+    if (action.includes('create')) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    if (action.includes('update')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    if (action.includes('delete')) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    if (action.includes('login')) return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+    if (action.includes('launch')) return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+    return 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-300';
   }
 
   function getStatusColor(status: string) {
-    return status === 'success' ? 'text-green-600' : 'text-red-600';
+    return status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   }
 
   function formatAction(action: string) {
@@ -80,22 +80,22 @@ export default function Audit() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Shield className="w-8 h-8 text-gray-700" />
+            <Shield className="w-8 h-8 text-slate-700 dark:text-slate-300" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Audit Log</h1>
-              <p className="text-gray-600 mt-1">Track all system activities and changes</p>
+              <h1 className="text-4xl font-light text-slate-900 dark:text-slate-100">Audit Log</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">Track all system activities and changes</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200/60 dark:border-slate-700/60">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center space-x-4">
-              <Filter className="w-5 h-5 text-gray-400" />
+              <Filter className="w-5 h-5 text-slate-400 dark:text-slate-500" />
               <select
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 <option value="">All Actions</option>
                 <option value="create_template">Create Template</option>
@@ -115,7 +115,7 @@ export default function Audit() {
               <select
                 value={filters.target_type}
                 onChange={(e) => setFilters({ ...filters, target_type: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 <option value="">All Types</option>
                 <option value="template">Template</option>
@@ -131,58 +131,58 @@ export default function Audit() {
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-gray-500">Loading...</div>
+              <div className="text-slate-500 dark:text-slate-400">Loading...</div>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64">
-              <Shield className="w-16 h-16 text-gray-300 mb-4" />
-              <p className="text-gray-500">No audit logs found</p>
+              <Shield className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+              <p className="text-slate-500 dark:text-slate-400">No audit logs found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Timestamp
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Action
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Target
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       IP Address
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
+                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm">
-                          <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-900">
+                          <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-2" />
+                          <span className="text-slate-900 dark:text-slate-100">
                             {new Date(log.timestamp).toLocaleString()}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <User className="w-4 h-4 text-gray-400 mr-2" />
+                          <User className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-2" />
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                               {log.actor_name || log.actor_email}
                             </div>
                             {log.actor_name && (
-                              <div className="text-xs text-gray-500">{log.actor_email}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{log.actor_email}</div>
                             )}
                           </div>
                         </div>
@@ -193,9 +193,9 @@ export default function Audit() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{log.target_type}</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-100">{log.target_type}</div>
                         {log.details && (
-                          <div className="text-xs text-gray-500">{log.details}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{log.details}</div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -203,7 +203,7 @@ export default function Audit() {
                           {log.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                         {log.ip_address || '-'}
                       </td>
                     </tr>
@@ -214,27 +214,27 @@ export default function Audit() {
           )}
 
           {!loading && logs.length > 0 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-500">
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div className="text-sm text-slate-500 dark:text-slate-400">
                 Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-slate-600 dark:text-slate-400">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                  <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
               </div>
             </div>

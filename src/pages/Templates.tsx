@@ -141,7 +141,7 @@ export default function Templates() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
       </Layout>
     );
@@ -152,12 +152,12 @@ export default function Templates() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-            <p className="text-gray-600 mt-1">Job templates for running playbooks</p>
+            <h1 className="text-4xl font-light text-slate-900 dark:text-slate-100">Templates</h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">Job templates for running playbooks</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md transition-all"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Template
@@ -165,46 +165,46 @@ export default function Templates() {
         </div>
 
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">
                   {editingId ? 'Edit Template' : 'Create New Template'}
                 </h2>
                 <button
                   onClick={handleCancel}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                     rows={2}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Playbook</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Playbook</label>
                   <select
                     required
                     value={formData.playbook_id}
                     onChange={(e) => setFormData({ ...formData, playbook_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   >
                     <option value="">Select a playbook...</option>
                     {projects.map((playbook: any) => (
@@ -215,12 +215,12 @@ export default function Templates() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Inventory</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inventory</label>
                   <select
                     required
                     value={formData.inventory_id}
                     onChange={(e) => setFormData({ ...formData, inventory_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   >
                     <option value="">Select an inventory...</option>
                     {inventories.map((inventory) => (
@@ -231,11 +231,11 @@ export default function Templates() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Credential (Optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Credential (Optional)</label>
                   <select
                     value={formData.credential_id}
                     onChange={(e) => setFormData({ ...formData, credential_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   >
                     <option value="">No credential</option>
                     {credentials.map((credential) => (
@@ -247,22 +247,22 @@ export default function Templates() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Forks</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Forks</label>
                     <input
                       type="number"
                       value={formData.forks}
                       onChange={(e) => setFormData({ ...formData, forks: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       min="1"
                       max="100"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Verbosity</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Verbosity</label>
                     <select
                       value={formData.verbosity}
                       onChange={(e) => setFormData({ ...formData, verbosity: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                     >
                       <option value="0">0 (Normal)</option>
                       <option value="1">1 (-v)</option>
@@ -278,9 +278,9 @@ export default function Templates() {
                     id="become"
                     checked={formData.become}
                     onChange={(e) => setFormData({ ...formData, become: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500"
                   />
-                  <label htmlFor="become" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="become" className="ml-2 text-sm text-slate-700 dark:text-slate-300">
                     Enable privilege escalation (become)
                   </label>
                 </div>
@@ -288,13 +288,13 @@ export default function Templates() {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md"
                   >
                     {editingId ? 'Update' : 'Create'}
                   </button>
@@ -306,12 +306,12 @@ export default function Templates() {
 
         <div className="grid grid-cols-1 gap-4">
           {templates.map((template) => (
-            <div key={template.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
+            <div key={template.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-xl transition-shadow p-6 border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-                  <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{template.name}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{template.description}</p>
+                  <div className="flex items-center space-x-4 mt-3 text-sm text-slate-600 dark:text-slate-400">
                     <span>Playbook: {template.playbook_name}</span>
                     <span>•</span>
                     <span>Inventory: {template.inventory_name}</span>
@@ -320,21 +320,21 @@ export default function Templates() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleLaunch(template.id)}
-                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 shadow-md transition-all"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Launch
                   </button>
                   <button
                     onClick={() => handleEdit(template)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
                     title="Edit template"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(template.id, template.name)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
                     title="Delete template"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -344,7 +344,7 @@ export default function Templates() {
             </div>
           ))}
           {templates.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
               No templates yet. Create one to get started.
             </div>
           )}
