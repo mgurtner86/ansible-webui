@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
-import { Settings as SettingsIcon, Save, Mail, Shield, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Mail, Shield, Plus, CreditCard as Edit2, Trash2 } from 'lucide-react';
 
 interface Setting {
   id: string;
