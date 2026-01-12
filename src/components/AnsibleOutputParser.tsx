@@ -7,7 +7,7 @@ interface AnsibleTask {
   details?: string;
   stdout?: string;
   stderr?: string;
-  msg?: string;
+  msg?: string | string[];
   results?: any[];
   result?: any;
 }
@@ -471,9 +471,19 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                           {task.msg && (
                             <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
                               <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">Message:</div>
-                              <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-mono">
-                                {task.msg}
-                              </pre>
+                              {Array.isArray(task.msg) ? (
+                                <div className="space-y-1">
+                                  {task.msg.map((line, idx) => (
+                                    <div key={idx} className="text-xs text-blue-800 dark:text-blue-200 font-mono">
+                                      {line}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-mono">
+                                  {task.msg}
+                                </pre>
+                              )}
                             </div>
                           )}
 
@@ -508,9 +518,19 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                                     </pre>
                                   )}
                                   {result.msg && (
-                                    <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
-                                      {result.msg}
-                                    </pre>
+                                    Array.isArray(result.msg) ? (
+                                      <div className="space-y-1">
+                                        {result.msg.map((line: string, idx: number) => (
+                                          <div key={idx} className="text-xs text-slate-800 dark:text-slate-200 font-mono">
+                                            {line}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
+                                        {result.msg}
+                                      </pre>
+                                    )
                                   )}
                                 </div>
                               ))}
