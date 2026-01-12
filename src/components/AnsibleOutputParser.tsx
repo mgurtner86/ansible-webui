@@ -33,7 +33,77 @@ interface ParsedAnsibleOutput {
   recap?: AnsibleRecap;
 }
 
+function parseJsonOutput(jsonData: any): ParsedAnsibleOutput {
+  const plays: AnsiblePlay[] = [];
+  const recap: AnsibleRecap = {};
+
+  if (jsonData.plays && Array.isArray(jsonData.plays)) {
+    for (const jsonPlay of jsonData.plays) {
+      const play: AnsiblePlay = {
+        name: jsonPlay.play?.name || 'Unknown Play',
+        tasks: []
+      };
+
+      if (jsonPlay.tasks && Array.isArray(jsonPlay.tasks)) {
+        for (const jsonTask of jsonPlay.tasks) {
+          if (jsonTask.task?.name) {
+            const hosts = jsonTask.hosts || {};
+
+            for (const [hostname, hostResult] of Object.entries<any>(hosts)) {
+              const task: AnsibleTask = {
+                name: jsonTask.task.name,
+                status: hostResult.failed ? 'failed' :
+                       hostResult.changed ? 'changed' :
+                       hostResult.unreachable ? 'unreachable' :
+                       hostResult.skipped ? 'skipped' : 'ok',
+                host: hostname
+              };
+
+              if (hostResult.stdout) task.stdout = hostResult.stdout;
+              if (hostResult.stderr) task.stderr = hostResult.stderr;
+              if (hostResult.msg) task.msg = hostResult.msg;
+              if (hostResult.results) task.results = hostResult.results;
+
+              play.tasks.push(task);
+            }
+          }
+        }
+      }
+
+      plays.push(play);
+    }
+  }
+
+  if (jsonData.stats) {
+    for (const [hostname, stats] of Object.entries<any>(jsonData.stats)) {
+      recap[hostname] = {
+        ok: stats.ok || 0,
+        changed: stats.changed || 0,
+        unreachable: stats.unreachable || 0,
+        failed: stats.failures || 0,
+        skipped: stats.skipped || 0,
+        rescued: stats.rescued || 0,
+        ignored: stats.ignored || 0
+      };
+    }
+  }
+
+  return {
+    plays,
+    recap: Object.keys(recap).length > 0 ? recap : undefined
+  };
+}
+
 export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
+  try {
+    const jsonMatch = output.match(/\{[\s\S]*"plays"[\s\S]*\}/);
+    if (jsonMatch) {
+      const jsonData = JSON.parse(jsonMatch[0]);
+      return parseJsonOutput(jsonData);
+    }
+  } catch (e) {
+    // Not JSON, continue with line-by-line parsing
+  }
   const lines = output.split('\n');
   const plays: AnsiblePlay[] = [];
   let currentPlay: AnsiblePlay | null = null;
