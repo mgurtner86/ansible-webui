@@ -65,10 +65,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative max-w-md w-full space-y-8">
@@ -76,13 +76,13 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 shadow-xl">
             <Server className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-5xl font-light tracking-tight text-slate-800">
+          <h2 className="text-5xl font-light tracking-tight text-slate-800 dark:text-slate-100">
             Ansible <span className="font-semibold">Tower</span>
           </h2>
-          <p className="mt-3 text-slate-500 text-lg">Sign in to your account</p>
+          <p className="mt-3 text-slate-500 dark:text-slate-400 text-lg">Sign in to your account</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-md p-10 rounded-2xl shadow-2xl border border-slate-200/60">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-10 rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-700/60">
           {microsoftEnabled && (
             <div className="flex bg-slate-100/50 rounded-xl p-1 mb-8">
               <button
@@ -120,7 +120,7 @@ export default function Login() {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Email address
                   </label>
                   <input
@@ -129,13 +129,13 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-5 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 backdrop-blur-sm"
+                    className="w-full px-5 py-3.5 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 dark:bg-slate-700/50 dark:text-slate-100 backdrop-blur-sm"
                     placeholder="admin@ansible-tower.local"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Password
                   </label>
                   <input
@@ -144,7 +144,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-5 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 backdrop-blur-sm"
+                    className="w-full px-5 py-3.5 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 dark:bg-slate-700/50 dark:text-slate-100 backdrop-blur-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -159,8 +159,8 @@ export default function Login() {
               </button>
 
               <div className="text-center text-sm">
-                <p className="text-slate-600 mb-2">Default credentials:</p>
-                <div className="font-mono text-xs bg-slate-100 px-4 py-3 rounded-lg text-slate-700">
+                <p className="text-slate-600 dark:text-slate-400 mb-2">Default credentials:</p>
+                <div className="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-4 py-3 rounded-lg text-slate-700 dark:text-slate-300">
                   admin@ansible-tower.local / admin123
                 </div>
               </div>

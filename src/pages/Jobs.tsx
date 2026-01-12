@@ -84,15 +84,15 @@ export default function Jobs() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-light tracking-tight text-slate-800">Jobs</h1>
-            <p className="text-slate-500 mt-2 text-lg">Job execution history and live monitoring</p>
+            <h1 className="text-4xl font-light tracking-tight text-slate-800 dark:text-slate-100">Jobs</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Job execution history and live monitoring</p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 bg-white rounded-xl p-2 shadow-md border border-slate-200/60 w-fit">
+        <div className="flex items-center space-x-3 bg-white dark:bg-slate-800 rounded-xl p-2 shadow-md border border-slate-200/60 dark:border-slate-700/60 w-fit">
           <button
             onClick={() => setFilter('all')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'}`}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
           >
             All
           </button>
@@ -120,7 +120,7 @@ export default function Jobs() {
           {filteredJobs.map((job) => (
             <div
               key={job.id}
-              className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 cursor-pointer border border-slate-200/60"
+              className="group bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
               onClick={() => navigate(`/jobs/${job.id}`)}
             >
               <div className="flex items-start justify-between">

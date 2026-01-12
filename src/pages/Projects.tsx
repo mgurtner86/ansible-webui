@@ -66,8 +66,8 @@ export default function Projects() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-light tracking-tight text-slate-800">Projects</h1>
-            <p className="text-slate-500 mt-2 text-lg">Git repositories containing Ansible playbooks</p>
+            <h1 className="text-4xl font-light tracking-tight text-slate-800 dark:text-slate-100">Projects</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Git repositories containing Ansible playbooks</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -79,17 +79,17 @@ export default function Projects() {
         </div>
 
         {showForm && (
-          <div className="bg-white rounded-xl shadow-lg p-8 border border-slate-200/60">
-            <h2 className="text-2xl font-light text-slate-800 mb-6 tracking-tight">Create New Project</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 border border-slate-200/60 dark:border-slate-700/60">
+            <h2 className="text-2xl font-light text-slate-800 dark:text-slate-100 mb-6 tracking-tight">Create New Project</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Name</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
               <div>
@@ -143,9 +143,9 @@ export default function Projects() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <div key={project.id} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200/60">
+            <div key={project.id} className="group bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{project.name}</h3>
+                <h3 className="text-xl font-medium text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.name}</h3>
                 <button
                   onClick={() => handleSync(project.id)}
                   className="p-2 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all"

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DarkModeProvider } from './contexts/DarkModeContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Playbooks from './pages/Playbooks';
@@ -141,9 +142,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <DarkModeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </DarkModeProvider>
     </BrowserRouter>
   );
 }
