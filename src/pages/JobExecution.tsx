@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
 import AnsibleOutputParser from '../components/AnsibleOutputParser';
-import { Play, CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react';
+import { Play, CheckCircle, XCircle, Clock, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function JobExecution() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +11,7 @@ export default function JobExecution() {
   const [job, setJob] = useState<any>(null);
   const [output, setOutput] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [isLiveOutputExpanded, setIsLiveOutputExpanded] = useState(true);
   const outputRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -28,16 +29,20 @@ export default function JobExecution() {
   }, [id]);
 
   useEffect(() => {
-    if (outputRef.current) {
+    if (outputRef.current && isLiveOutputExpanded) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
-  }, [output]);
+  }, [output, isLiveOutputExpanded]);
 
   async function loadJob() {
     try {
       const data = await api.jobs.get(id!);
       setJob(data);
       setOutput(data.output || 'Waiting for job to start...\n');
+
+      if (data.status === 'completed' || data.status === 'failed' || data.status === 'canceled') {
+        setIsLiveOutputExpanded(false);
+      }
     } catch (error) {
       console.error('Failed to load job:', error);
     } finally {
@@ -53,6 +58,7 @@ export default function JobExecution() {
         setOutput(data.output || 'Waiting for job to start...\n');
 
         if (data.status === 'completed' || data.status === 'failed' || data.status === 'canceled') {
+          setIsLiveOutputExpanded(false);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -244,9 +250,19 @@ export default function JobExecution() {
 
           <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-                Live Output
-              </h3>
+              <button
+                onClick={() => setIsLiveOutputExpanded(!isLiveOutputExpanded)}
+                className="flex items-center space-x-2 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg px-3 py-2 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                  Live Output
+                </h3>
+                {isLiveOutputExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                )}
+              </button>
               {job.status === 'running' && (
                 <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
                   <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
@@ -254,13 +270,15 @@ export default function JobExecution() {
                 </div>
               )}
             </div>
-            <div
-              ref={outputRef}
-              className="bg-slate-900 dark:bg-slate-950 font-mono text-sm p-4 rounded-xl h-[500px] overflow-y-auto border border-slate-700 dark:border-slate-800"
-              style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-            >
-              {renderColoredOutput()}
-            </div>
+            {isLiveOutputExpanded && (
+              <div
+                ref={outputRef}
+                className="bg-slate-900 dark:bg-slate-950 font-mono text-sm p-4 rounded-xl h-[500px] overflow-y-auto border border-slate-700 dark:border-slate-800"
+                style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+              >
+                {renderColoredOutput()}
+              </div>
+            )}
           </div>
 
           <AnsibleOutputParser output={output} />
