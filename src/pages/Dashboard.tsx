@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
 import {
-  FolderGit2,
   Server,
   FileCode,
   PlayCircle,
@@ -43,7 +42,6 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { name: 'Projects', value: stats?.totals.projects || 0, icon: FolderGit2, link: '/projects', color: 'from-blue-500 to-blue-600' },
     { name: 'Inventories', value: stats?.totals.inventories || 0, icon: Server, link: '/inventories', color: 'from-emerald-500 to-emerald-600' },
     { name: 'Templates', value: stats?.totals.templates || 0, icon: FileCode, link: '/templates', color: 'from-orange-500 to-orange-600' },
     { name: 'Jobs', value: stats?.totals.jobs || 0, icon: PlayCircle, link: '/jobs', color: 'from-pink-500 to-pink-600' },
@@ -66,7 +64,7 @@ export default function Dashboard() {
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Overview of your Ansible Tower instance</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {statCards.map((card) => {
             const Icon = card.icon;
             return (
