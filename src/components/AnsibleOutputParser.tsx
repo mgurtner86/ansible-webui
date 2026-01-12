@@ -9,6 +9,7 @@ interface AnsibleTask {
   stderr?: string;
   msg?: string;
   results?: any[];
+  result?: any;
 }
 
 interface AnsiblePlay {
@@ -195,6 +196,7 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
             // Single-line JSON found
             const jsonContent = JSON.parse(jsonStr.substring(0, jsonEndIdx + 1));
             if (currentTask) {
+              currentTask.result = jsonContent;
               if (jsonContent.stdout) currentTask.stdout = jsonContent.stdout;
               if (jsonContent.stderr) currentTask.stderr = jsonContent.stderr;
               if (jsonContent.msg) currentTask.msg = jsonContent.msg;
@@ -228,6 +230,7 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
               try {
                 const jsonContent = JSON.parse(fullJson);
                 if (currentTask) {
+                  currentTask.result = jsonContent;
                   if (jsonContent.stdout) currentTask.stdout = jsonContent.stdout;
                   if (jsonContent.stderr) currentTask.stderr = jsonContent.stderr;
                   if (jsonContent.msg) currentTask.msg = jsonContent.msg;
@@ -443,6 +446,15 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                                   )}
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {task.result && !task.stdout && !task.stderr && !task.msg && !task.results && (
+                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
+                              <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">Task Result:</div>
+                              <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto max-h-96 overflow-y-auto">
+                                {JSON.stringify(task.result, null, 2)}
+                              </pre>
                             </div>
                           )}
                         </div>
