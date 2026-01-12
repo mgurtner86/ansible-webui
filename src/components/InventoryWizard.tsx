@@ -142,16 +142,16 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-200/60 dark:border-slate-700/60">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Create Inventory</h2>
-            <p className="text-sm text-gray-600 mt-1">Step {step} of 3</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Create Inventory</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Step {step} of 3</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           >
             <X className="w-5 h-5" />
           </button>
@@ -161,10 +161,10 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4">Basic Information</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Inventory Name *
                     </label>
                     <input
@@ -172,24 +172,24 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                       required
                       value={inventoryName}
                       onChange={(e) => setInventoryName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       placeholder="Production Servers"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Description
                     </label>
                     <textarea
                       value={inventoryDescription}
                       onChange={(e) => setInventoryDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       rows={3}
                       placeholder="Description of this inventory..."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Operating System Type *
                     </label>
                     <div className="grid grid-cols-2 gap-4">
@@ -201,13 +201,13 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                         }}
                         className={`p-4 border-2 rounded-lg text-left transition-all ${
                           osType === 'linux'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                            : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
                         }`}
                       >
-                        <Server className="w-6 h-6 mb-2 text-gray-700" />
-                        <div className="font-medium text-gray-900">Linux</div>
-                        <div className="text-sm text-gray-600">SSH Connection</div>
+                        <Server className="w-6 h-6 mb-2 text-slate-700 dark:text-slate-300" />
+                        <div className="font-medium text-slate-900 dark:text-slate-100">Linux</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">SSH Connection</div>
                       </button>
                       <button
                         type="button"
@@ -217,13 +217,13 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                         }}
                         className={`p-4 border-2 rounded-lg text-left transition-all ${
                           osType === 'windows'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                            : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
                         }`}
                       >
-                        <Server className="w-6 h-6 mb-2 text-gray-700" />
-                        <div className="font-medium text-gray-900">Windows</div>
-                        <div className="text-sm text-gray-600">WinRM Connection</div>
+                        <Server className="w-6 h-6 mb-2 text-slate-700 dark:text-slate-300" />
+                        <div className="font-medium text-slate-900 dark:text-slate-100">Windows</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">WinRM Connection</div>
                       </button>
                     </div>
                   </div>
@@ -235,8 +235,8 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Add Hosts</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4">Add Hosts</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                   Add the hostnames or IP addresses of the servers in this inventory.
                 </p>
                 <div className="space-y-3">
@@ -246,14 +246,14 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                         type="text"
                         value={host.hostname}
                         onChange={(e) => updateHost(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                         placeholder="hostname or IP address"
                       />
                       {hosts.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeHost(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 rounded transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -263,7 +263,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                   <button
                     type="button"
                     onClick={addHost}
-                    className="inline-flex items-center px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="inline-flex items-center px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Another Host
@@ -276,23 +276,23 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Connection Details</h3>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4">Connection Details</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Credential Name (Optional)
                     </label>
                     <input
                       type="text"
                       value={credentialName}
                       onChange={(e) => setCredentialName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       placeholder="Auto-generated if left empty"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Username *
                     </label>
                     <input
@@ -300,14 +300,14 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       placeholder={osType === 'windows' ? 'Administrator' : 'root'}
                     />
                   </div>
 
                   {osType === 'linux' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Authentication Method *
                       </label>
                       <div className="grid grid-cols-2 gap-4">
@@ -316,24 +316,24 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                           onClick={() => setAuthMethod('password')}
                           className={`p-3 border-2 rounded-lg text-left transition-all ${
                             authMethod === 'password'
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-300 hover:border-gray-400'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                              : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
                           }`}
                         >
-                          <Key className="w-5 h-5 mb-1 text-gray-700" />
-                          <div className="font-medium text-sm">Password</div>
+                          <Key className="w-5 h-5 mb-1 text-slate-700 dark:text-slate-300" />
+                          <div className="font-medium text-sm text-slate-900 dark:text-slate-100">Password</div>
                         </button>
                         <button
                           type="button"
                           onClick={() => setAuthMethod('key')}
                           className={`p-3 border-2 rounded-lg text-left transition-all ${
                             authMethod === 'key'
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-300 hover:border-gray-400'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                              : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
                           }`}
                         >
-                          <Key className="w-5 h-5 mb-1 text-gray-700" />
-                          <div className="font-medium text-sm">SSH Key</div>
+                          <Key className="w-5 h-5 mb-1 text-slate-700 dark:text-slate-300" />
+                          <div className="font-medium text-sm text-slate-900 dark:text-slate-100">SSH Key</div>
                         </button>
                       </div>
                     </div>
@@ -341,7 +341,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
 
                   {(osType === 'windows' || authMethod === 'password') && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Password *
                       </label>
                       <div className="relative">
@@ -350,12 +350,12 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -365,12 +365,12 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
 
                   {osType === 'linux' && authMethod === 'key' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
                         <span>SSH Private Key *</span>
                         <button
                           type="button"
                           onClick={() => setShowSshKey(!showSshKey)}
-                          className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center"
                         >
                           {showSshKey ? (
                             <>
@@ -389,7 +389,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                         required
                         value={sshKey}
                         onChange={(e) => setSshKey(e.target.value)}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm ${!showSshKey ? 'blur-sm' : ''}`}
+                        className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${!showSshKey ? 'blur-sm' : ''}`}
                         rows={6}
                         placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
                       />
@@ -397,31 +397,31 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Port (Optional)
                     </label>
                     <input
                       type="number"
                       value={port}
                       onChange={(e) => setPort(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       placeholder={osType === 'windows' ? '5986' : '22'}
                     />
                   </div>
 
                   {osType === 'linux' && (
                     <>
-                      <div className="border-t pt-4">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3">Privilege Escalation (Optional)</h4>
+                      <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                        <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Privilege Escalation (Optional)</h4>
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                               Become Method
                             </label>
                             <select
                               value={becomeMethod}
                               onChange={(e) => setBecomeMethod(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                             >
                               <option value="">None</option>
                               <option value="sudo">sudo</option>
@@ -432,19 +432,19 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                           {becomeMethod && (
                             <>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                   Become User
                                 </label>
                                 <input
                                   type="text"
                                   value={becomeUser}
                                   onChange={(e) => setBecomeUser(e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                                   placeholder="root"
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                   Become Password
                                 </label>
                                 <div className="relative">
@@ -452,12 +452,12 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
                                     type={showBecomePassword ? "text" : "password"}
                                     value={becomePassword}
                                     onChange={(e) => setBecomePassword(e.target.value)}
-                                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setShowBecomePassword(!showBecomePassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                   >
                                     {showBecomePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                   </button>
@@ -475,12 +475,12 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-between p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
           <button
             type="button"
             onClick={() => setStep(Math.max(1, step - 1))}
             disabled={step === 1}
-            className="inline-flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Previous
@@ -490,7 +490,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
               <div
                 key={s}
                 className={`w-2 h-2 rounded-full ${
-                  s === step ? 'bg-blue-600' : s < step ? 'bg-blue-300' : 'bg-gray-300'
+                  s === step ? 'bg-blue-600' : s < step ? 'bg-blue-300 dark:bg-blue-400' : 'bg-slate-300 dark:bg-slate-600'
                 }`}
               />
             ))}
@@ -500,7 +500,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
               type="button"
               onClick={() => setStep(step + 1)}
               disabled={!canProceed()}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -510,7 +510,7 @@ export default function InventoryWizard({ onClose, onSuccess }: WizardProps) {
               type="button"
               onClick={handleFinish}
               disabled={!canProceed() || saving}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
             >
               {saving ? 'Creating...' : 'Create Inventory'}
             </button>
