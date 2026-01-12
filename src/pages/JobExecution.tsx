@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import Layout from '../components/Layout';
+import AnsibleOutputParser from '../components/AnsibleOutputParser';
 import { Play, CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react';
 
 export default function JobExecution() {
@@ -261,6 +262,8 @@ export default function JobExecution() {
               {renderColoredOutput()}
             </div>
           </div>
+
+          <AnsibleOutputParser output={output} />
 
           {job.status === 'completed' && (
             <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 rounded-xl">

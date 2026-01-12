@@ -1,0 +1,285 @@
+import { CheckCircle, XCircle, AlertCircle, MinusCircle, Clock } from 'lucide-react';
+
+interface AnsibleTask {
+  name: string;
+  status: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable' | 'running';
+  host?: string;
+  details?: string;
+}
+
+interface AnsiblePlay {
+  name: string;
+  tasks: AnsibleTask[];
+}
+
+interface AnsibleRecap {
+  [host: string]: {
+    ok: number;
+    changed: number;
+    unreachable: number;
+    failed: number;
+    skipped: number;
+    rescued: number;
+    ignored: number;
+  };
+}
+
+interface ParsedAnsibleOutput {
+  plays: AnsiblePlay[];
+  recap?: AnsibleRecap;
+}
+
+export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
+  const lines = output.split('\n');
+  const plays: AnsiblePlay[] = [];
+  let currentPlay: AnsiblePlay | null = null;
+  let currentTask: AnsibleTask | null = null;
+  let inRecap = false;
+  const recap: AnsibleRecap = {};
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    if (line.startsWith('PLAY [')) {
+      const playName = line.match(/PLAY \[(.*?)\]/)?.[1] || 'Unknown Play';
+      currentPlay = { name: playName, tasks: [] };
+      plays.push(currentPlay);
+      currentTask = null;
+    } else if (line.startsWith('TASK [')) {
+      const taskName = line.match(/TASK \[(.*?)\]/)?.[1] || 'Unknown Task';
+      currentTask = { name: taskName, status: 'running' };
+      if (currentPlay) {
+        currentPlay.tasks.push(currentTask);
+      }
+    } else if (line.startsWith('ok:')) {
+      const host = line.match(/ok: \[(.*?)\]/)?.[1];
+      if (currentTask) {
+        currentTask.status = 'ok';
+        currentTask.host = host;
+      }
+    } else if (line.startsWith('changed:')) {
+      const host = line.match(/changed: \[(.*?)\]/)?.[1];
+      if (currentTask) {
+        currentTask.status = 'changed';
+        currentTask.host = host;
+      }
+    } else if (line.startsWith('failed:')) {
+      const host = line.match(/failed: \[(.*?)\]/)?.[1];
+      if (currentTask) {
+        currentTask.status = 'failed';
+        currentTask.host = host;
+      }
+    } else if (line.startsWith('skipping:')) {
+      const host = line.match(/skipping: \[(.*?)\]/)?.[1];
+      if (currentTask) {
+        currentTask.status = 'skipped';
+        currentTask.host = host;
+      }
+    } else if (line.startsWith('fatal:')) {
+      const host = line.match(/fatal: \[(.*?)\]/)?.[1];
+      if (currentTask) {
+        currentTask.status = 'failed';
+        currentTask.host = host;
+        const msgMatch = lines[i + 1]?.match(/"msg":\s*"(.*?)"/);
+        if (msgMatch) {
+          currentTask.details = msgMatch[1];
+        }
+      }
+    } else if (line.includes('PLAY RECAP')) {
+      inRecap = true;
+    } else if (inRecap && line.includes(':')) {
+      const recapMatch = line.match(/^(\S+)\s+:\s+ok=(\d+)\s+changed=(\d+)\s+unreachable=(\d+)\s+failed=(\d+)\s+skipped=(\d+)\s+rescued=(\d+)\s+ignored=(\d+)/);
+      if (recapMatch) {
+        const [, host, ok, changed, unreachable, failed, skipped, rescued, ignored] = recapMatch;
+        recap[host] = {
+          ok: parseInt(ok),
+          changed: parseInt(changed),
+          unreachable: parseInt(unreachable),
+          failed: parseInt(failed),
+          skipped: parseInt(skipped),
+          rescued: parseInt(rescued),
+          ignored: parseInt(ignored),
+        };
+      }
+    }
+  }
+
+  return {
+    plays,
+    recap: Object.keys(recap).length > 0 ? recap : undefined,
+  };
+}
+
+function TaskStatusIcon({ status }: { status: AnsibleTask['status'] }) {
+  switch (status) {
+    case 'ok':
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
+    case 'changed':
+      return <CheckCircle className="w-4 h-4 text-blue-500" />;
+    case 'failed':
+      return <XCircle className="w-4 h-4 text-red-500" />;
+    case 'skipped':
+      return <MinusCircle className="w-4 h-4 text-slate-400" />;
+    case 'unreachable':
+      return <AlertCircle className="w-4 h-4 text-orange-500" />;
+    case 'running':
+      return <Clock className="w-4 h-4 text-blue-400 animate-pulse" />;
+  }
+}
+
+function getTaskStatusColor(status: AnsibleTask['status']): string {
+  switch (status) {
+    case 'ok':
+      return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+    case 'changed':
+      return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+    case 'failed':
+      return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+    case 'skipped':
+      return 'bg-slate-50 dark:bg-slate-800/20 border-slate-200 dark:border-slate-700';
+    case 'unreachable':
+      return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800';
+    case 'running':
+      return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+  }
+}
+
+export default function AnsibleOutputParser({ output }: { output: string }) {
+  const parsed = parseAnsibleOutput(output);
+
+  if (parsed.plays.length === 0 && !parsed.recap) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide mb-4">
+          Structured Output
+        </h3>
+
+        <div className="space-y-4">
+          {parsed.plays.map((play, playIndex) => (
+            <div
+              key={playIndex}
+              className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+            >
+              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                  Play: {play.name}
+                </h4>
+              </div>
+
+              <div className="p-4 space-y-2">
+                {play.tasks.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">No tasks yet</p>
+                ) : (
+                  play.tasks.map((task, taskIndex) => (
+                    <div
+                      key={taskIndex}
+                      className={`flex items-start space-x-3 p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
+                    >
+                      <TaskStatusIcon status={task.status} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                            {task.name}
+                          </p>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 ml-2">
+                            {task.status.toUpperCase()}
+                          </span>
+                        </div>
+                        {task.host && (
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            Host: {task.host}
+                          </p>
+                        )}
+                        {task.details && (
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
+                            {task.details}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {parsed.recap && (
+          <div className="mt-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+              <h4 className="font-medium text-slate-900 dark:text-slate-100">Play Recap</h4>
+            </div>
+            <div className="p-4">
+              <div className="space-y-3">
+                {Object.entries(parsed.recap).map(([host, stats]) => (
+                  <div
+                    key={host}
+                    className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4"
+                  >
+                    <div className="font-medium text-slate-900 dark:text-slate-100 mb-3">
+                      {host}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          OK: <span className="font-medium text-green-600 dark:text-green-500">{stats.ok}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          Changed: <span className="font-medium text-blue-600 dark:text-blue-500">{stats.changed}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          Failed: <span className="font-medium text-red-600 dark:text-red-500">{stats.failed}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <MinusCircle className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          Skipped: <span className="font-medium">{stats.skipped}</span>
+                        </span>
+                      </div>
+                      {stats.unreachable > 0 && (
+                        <div className="flex items-center space-x-2">
+                          <AlertCircle className="w-4 h-4 text-orange-500" />
+                          <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Unreachable: <span className="font-medium text-orange-600 dark:text-orange-500">{stats.unreachable}</span>
+                          </span>
+                        </div>
+                      )}
+                      {stats.rescued > 0 && (
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-yellow-500" />
+                          <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Rescued: <span className="font-medium text-yellow-600 dark:text-yellow-500">{stats.rescued}</span>
+                          </span>
+                        </div>
+                      )}
+                      {stats.ignored > 0 && (
+                        <div className="flex items-center space-x-2">
+                          <AlertCircle className="w-4 h-4 text-slate-400" />
+                          <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Ignored: <span className="font-medium">{stats.ignored}</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
