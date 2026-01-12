@@ -65,32 +65,32 @@ export default function JobExecution() {
   function getStatusIcon() {
     switch (job?.status) {
       case 'completed':
-        return <CheckCircle className="w-6 h-6 text-green-600" />;
+        return <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-500" />;
       case 'failed':
-        return <XCircle className="w-6 h-6 text-red-600" />;
+        return <XCircle className="w-6 h-6 text-red-600 dark:text-red-500" />;
       case 'running':
-        return <Play className="w-6 h-6 text-blue-600 animate-pulse" />;
+        return <Play className="w-6 h-6 text-blue-600 dark:text-blue-500 animate-pulse" />;
       case 'pending':
-        return <Clock className="w-6 h-6 text-gray-400" />;
+        return <Clock className="w-6 h-6 text-slate-400 dark:text-slate-500" />;
       default:
-        return <Clock className="w-6 h-6 text-gray-400" />;
+        return <Clock className="w-6 h-6 text-slate-400 dark:text-slate-500" />;
     }
   }
 
   function getStatusColor() {
     switch (job?.status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-gradient-to-r from-green-500 to-green-600 text-white';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gradient-to-r from-red-500 to-red-600 text-white';
       case 'running':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white';
       case 'pending':
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-gradient-to-r from-slate-400 to-slate-500 text-white';
       case 'canceled':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-gradient-to-r from-slate-400 to-slate-500 text-white';
     }
   }
 
@@ -148,7 +148,7 @@ export default function JobExecution() {
     }
 
     // Standard (Grau/Weiß)
-    return 'text-gray-300';
+    return 'text-slate-300 dark:text-slate-400';
   }
 
   function renderColoredOutput() {
@@ -173,7 +173,7 @@ export default function JobExecution() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
       </Layout>
     );
@@ -183,7 +183,7 @@ export default function JobExecution() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Job not found</div>
+          <div className="text-slate-500 dark:text-slate-400">Job not found</div>
         </div>
       </Layout>
     );
@@ -196,43 +196,43 @@ export default function JobExecution() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/jobs')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Job Execution</h1>
-              <p className="text-gray-600 mt-1">Job #{job.id.slice(0, 8)}</p>
+              <h1 className="text-4xl font-light text-slate-900 dark:text-slate-100">Job Execution</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">Job #{job.id.slice(0, 8)}</p>
             </div>
           </div>
           {job.status === 'running' && (
             <button
               onClick={handleCancel}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-md transition-all duration-200"
             >
               Cancel Job
             </button>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 p-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start space-x-4">
               {getStatusIcon()}
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{job.template_name}</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">{job.template_name}</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                   Template: {job.template_name} • Inventory: {job.inventory_name}
                 </p>
                 <div className="flex items-center space-x-3 mt-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-md ${getStatusColor()}`}>
                     {job.status}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     Started: {new Date(job.started_at).toLocaleString()}
                   </span>
                   {job.finished_at && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
                       Finished: {new Date(job.finished_at).toLocaleString()}
                     </span>
                   )}
@@ -241,21 +241,21 @@ export default function JobExecution() {
             </div>
           </div>
 
-          <div className="border-t pt-6">
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                 Live Output
               </h3>
               {job.status === 'running' && (
-                <div className="flex items-center space-x-2 text-sm text-blue-600">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                  <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
                   <span>Streaming...</span>
                 </div>
               )}
             </div>
             <div
               ref={outputRef}
-              className="bg-gray-900 font-mono text-sm p-4 rounded-lg h-[500px] overflow-y-auto"
+              className="bg-slate-900 dark:bg-slate-950 font-mono text-sm p-4 rounded-xl h-[500px] overflow-y-auto border border-slate-700 dark:border-slate-800"
               style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
             >
               {renderColoredOutput()}
@@ -263,19 +263,19 @@ export default function JobExecution() {
           </div>
 
           {job.status === 'completed' && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 rounded-xl">
               <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                <span className="text-green-800 font-medium">Job completed successfully</span>
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-500 mr-2" />
+                <span className="text-green-800 dark:text-green-300 font-medium">Job completed successfully</span>
               </div>
             </div>
           )}
 
           {job.status === 'failed' && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-xl">
               <div className="flex items-center">
-                <XCircle className="w-5 h-5 text-red-600 mr-2" />
-                <span className="text-red-800 font-medium">Job failed</span>
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-500 mr-2" />
+                <span className="text-red-800 dark:text-red-300 font-medium">Job failed</span>
               </div>
             </div>
           )}

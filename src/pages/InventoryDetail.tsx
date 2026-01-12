@@ -138,7 +138,7 @@ export default function InventoryDetail() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
       </Layout>
     );
@@ -148,7 +148,7 @@ export default function InventoryDetail() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <p className="text-gray-500">Inventory not found</p>
+          <p className="text-slate-500 dark:text-slate-400">Inventory not found</p>
         </div>
       </Layout>
     );
@@ -161,18 +161,18 @@ export default function InventoryDetail() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/inventories')}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{inventory.name}</h1>
-              <p className="text-gray-600 mt-1">{inventory.description}</p>
+              <h1 className="text-4xl font-light text-slate-900 dark:text-slate-100">{inventory.name}</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">{inventory.description}</p>
             </div>
           </div>
           <button
             onClick={handleAddHost}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md transition-all duration-200"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Host
@@ -180,12 +180,12 @@ export default function InventoryDetail() {
         </div>
 
         {inventory.credential_name && (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200/60 dark:border-slate-700/60">
             <div className="flex items-center space-x-3">
-              <Key className="w-5 h-5 text-gray-400" />
+              <Key className="w-5 h-5 text-slate-400 dark:text-slate-500" />
               <div>
-                <h3 className="text-sm font-medium text-gray-900">Default Credential</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">Default Credential</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                   {inventory.credential_name} ({inventory.credential_type})
                 </p>
               </div>
@@ -193,29 +193,29 @@ export default function InventoryDetail() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Hosts ({hosts.length})</h2>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200/60 dark:border-slate-700/60">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+            <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100">Hosts ({hosts.length})</h2>
           </div>
           {hosts.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
+            <div className="p-12 text-center text-slate-500 dark:text-slate-400">
               No hosts in this inventory. Add a host to get started.
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
               {hosts.map((host) => (
-                <div key={host.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+                <div key={host.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                   <div className="flex items-center space-x-4 flex-1">
-                    <Server className="w-5 h-5 text-gray-400" />
+                    <Server className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900">{host.hostname}</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{host.hostname}</span>
                         {host.vars?.ansible_connection === 'winrm' && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Windows</span>
+                          <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">Windows</span>
                         )}
                       </div>
                       {Object.keys(host.vars || {}).length > 0 && (
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                           {Object.entries(host.vars)
                             .filter(([key]) => !key.startsWith('ansible_'))
                             .map(([key, value]) => (
@@ -228,20 +228,20 @@ export default function InventoryDetail() {
                     </div>
                     <div className="flex items-center space-x-2">
                       {!host.enabled && (
-                        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Disabled</span>
+                        <span className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">Disabled</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleEditHost(host)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteHost(host.id, host.hostname)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -254,20 +254,20 @@ export default function InventoryDetail() {
       </div>
 
       {showHostForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-2xl border border-slate-200/60 dark:border-slate-700/60">
+            <h2 className="text-2xl font-light text-slate-900 dark:text-slate-100 mb-4">
               {editingHost ? 'Edit Host' : 'Add Host'}
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hostname / IP *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hostname / IP *</label>
                 <input
                   type="text"
                   required
                   value={hostForm.hostname}
                   onChange={(e) => setHostForm({ ...hostForm, hostname: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400"
                   placeholder="server.example.com or 192.168.1.10"
                 />
               </div>
@@ -278,9 +278,9 @@ export default function InventoryDetail() {
                     id="enabled"
                     checked={hostForm.enabled}
                     onChange={(e) => setHostForm({ ...hostForm, enabled: e.target.checked })}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="enabled" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="enabled" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Enabled
                   </label>
                 </div>
@@ -290,19 +290,19 @@ export default function InventoryDetail() {
                     id="windows"
                     checked={isWindowsHost}
                     onChange={(e) => handleWindowsHostToggle(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="windows" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="windows" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Windows Host (WinRM)
                   </label>
                 </div>
               </div>
               {isWindowsHost && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                  <p className="text-sm text-blue-800 font-medium">Windows Host Configuration</p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-3">
+                  <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">Windows Host Configuration</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">WinRM Port</label>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">WinRM Port</label>
                       <input
                         type="text"
                         value={hostForm.vars.ansible_port || '5986'}
@@ -310,19 +310,19 @@ export default function InventoryDetail() {
                           ...hostForm,
                           vars: { ...hostForm.vars, ansible_port: e.target.value }
                         })}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
                       />
-                      <p className="text-xs text-gray-500 mt-1">5986 (HTTPS) or 5985 (HTTP)</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">5986 (HTTPS) or 5985 (HTTP)</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Transport</label>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Transport</label>
                       <select
                         value={hostForm.vars.ansible_winrm_transport || 'ntlm'}
                         onChange={(e) => setHostForm({
                           ...hostForm,
                           vars: { ...hostForm.vars, ansible_winrm_transport: e.target.value }
                         })}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
                       >
                         <option value="ntlm">NTLM</option>
                         <option value="basic">Basic</option>
@@ -342,9 +342,9 @@ export default function InventoryDetail() {
                           ansible_winrm_server_cert_validation: e.target.checked ? 'ignore' : 'validate'
                         }
                       })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                     />
-                    <label htmlFor="cert-validation" className="text-xs text-gray-700">
+                    <label htmlFor="cert-validation" className="text-xs text-slate-700 dark:text-slate-300">
                       Ignore SSL certificate validation (recommended for self-signed certs)
                     </label>
                   </div>
@@ -354,14 +354,14 @@ export default function InventoryDetail() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowHostForm(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveHost}
                 disabled={!hostForm.hostname.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 shadow-md transition-all duration-200"
               >
                 {editingHost ? 'Update' : 'Add'}
               </button>
