@@ -191,7 +191,7 @@ async function processJob(job) {
     const env = {
       ...process.env,
       ANSIBLE_HOST_KEY_CHECKING: 'False',
-      ANSIBLE_STDOUT_CALLBACK: 'json',
+      ANSIBLE_STDOUT_CALLBACK: 'default',
       ANSIBLE_FORCE_COLOR: 'false',
       ANSIBLE_NOCOLOR: 'true',
       ANSIBLE_WINRM_CONNECTION_TIMEOUT: '60',
@@ -213,27 +213,22 @@ async function processJob(job) {
         let stdoutBuffer = '';
         let stderrBuffer = '';
         let hasError = false;
-        let jsonBuffer = '';
 
         process.stdout.on('data', async (data) => {
           const text = stripAnsi(data.toString());
           stdoutBuffer += text;
-          jsonBuffer += text;
 
-          // For JSON callback, don't insert lines immediately
-          // We'll insert the complete JSON at the end
-          if (env.ANSIBLE_STDOUT_CALLBACK !== 'json') {
-            const lines = text.split('\n');
-            for (const line of lines) {
-              if (line.trim()) {
-                try {
-                  await pool.query(
-                    'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-                    [jobId, 'info', line + '\n']
-                  );
-                } catch (err) {
-                  console.error('Failed to insert job event:', err);
-                }
+          // Insert lines immediately for real-time output
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                await pool.query(
+                  'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
+                  [jobId, 'info', line + '\n']
+                );
+              } catch (err) {
+                console.error('Failed to insert job event:', err);
               }
             }
           }
@@ -260,18 +255,6 @@ async function processJob(job) {
 
         process.on('close', async (code) => {
           if (hasError) return;
-
-          // For JSON callback, insert the complete JSON output at the end
-          if (env.ANSIBLE_STDOUT_CALLBACK === 'json' && jsonBuffer.trim()) {
-            try {
-              await pool.query(
-                'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-                [jobId, 'info', jsonBuffer]
-              );
-            } catch (err) {
-              console.error('Failed to insert JSON output:', err);
-            }
-          }
 
           if (code === 0) {
             await pool.query(
