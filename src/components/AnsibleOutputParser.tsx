@@ -426,7 +426,7 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
         </h3>
 
         <div className="space-y-4">
-          {parsed.plays.map((play, playIndex) => (
+          {parsed.plays.filter(play => play.tasks.length > 0).map((play, playIndex) => (
             <div key={playIndex} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -435,10 +435,7 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
               </div>
               <div className="p-4">
                 <div className="space-y-2">
-                  {play.tasks.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">No tasks yet</p>
-                  ) : (
-                    play.tasks.map((task, taskIndex) => (
+                  {play.tasks.map((task, taskIndex) => (
                       <div
                         key={taskIndex}
                         className={`p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
@@ -548,7 +545,7 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
                         </div>
                       </div>
                     ))
-                  )}
+                  }
                 </div>
               </div>
             </div>
