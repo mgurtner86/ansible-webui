@@ -418,6 +418,8 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
     return null;
   }
 
+  const allTasks = parsed.plays.flatMap(play => play.tasks);
+
   return (
     <div className="mt-6 space-y-6">
       <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
@@ -425,136 +427,121 @@ export default function AnsibleOutputParser({ output }: { output: string }) {
           Structured Output
         </h3>
 
-        <div className="space-y-4">
-          {parsed.plays.map((play, playIndex) => (
-            <div
-              key={playIndex}
-              className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-            >
-              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                  Play: {play.name}
-                </h4>
-              </div>
+        <div className="space-y-2">
+          {allTasks.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">No tasks yet</p>
+          ) : (
+            allTasks.map((task, taskIndex) => (
+              <div
+                key={taskIndex}
+                className={`p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
+              >
+                <div className="flex items-start space-x-3">
+                  <TaskStatusIcon status={task.status} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                        {task.name}
+                      </p>
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400 ml-2">
+                        {task.status.toUpperCase()}
+                      </span>
+                    </div>
+                    {task.host && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                        Host: {task.host}
+                      </p>
+                    )}
+                    {task.details && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
+                        {task.details}
+                      </p>
+                    )}
 
-              <div className="p-4 space-y-2">
-                {play.tasks.length === 0 ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">No tasks yet</p>
-                ) : (
-                  play.tasks.map((task, taskIndex) => (
-                    <div
-                      key={taskIndex}
-                      className={`p-3 rounded-lg border ${getTaskStatusColor(task.status)}`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <TaskStatusIcon status={task.status} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                              {task.name}
-                            </p>
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 ml-2">
-                              {task.status.toUpperCase()}
-                            </span>
+                    {task.msg && (
+                      <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+                        <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">Message:</div>
+                        {Array.isArray(task.msg) ? (
+                          <div className="space-y-1">
+                            {task.msg.map((line, idx) => (
+                              <div key={idx} className="text-xs text-blue-800 dark:text-blue-200 font-mono">
+                                {line}
+                              </div>
+                            ))}
                           </div>
-                          {task.host && (
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                              Host: {task.host}
-                            </p>
-                          )}
-                          {task.details && (
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
-                              {task.details}
-                            </p>
-                          )}
+                        ) : (
+                          <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-mono">
+                            {task.msg}
+                          </pre>
+                        )}
+                      </div>
+                    )}
 
-                          {task.msg && (
-                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
-                              <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">Message:</div>
-                              {Array.isArray(task.msg) ? (
+                    {task.stdout && (
+                      <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
+                        <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">Output (stdout):</div>
+                        <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                          {task.stdout}
+                        </pre>
+                      </div>
+                    )}
+
+                    {task.stderr && (
+                      <div className="mt-2 p-2 bg-red-50 dark:bg-red-950/30 rounded border border-red-200 dark:border-red-800">
+                        <div className="text-xs font-semibold text-red-900 dark:text-red-300 mb-1">Error Output (stderr):</div>
+                        <pre className="text-xs text-red-800 dark:text-red-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                          {task.stderr}
+                        </pre>
+                      </div>
+                    )}
+
+                    {task.results && task.results.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {task.results.map((result: any, idx: number) => (
+                          <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
+                            <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">
+                              Result {idx + 1}:
+                            </div>
+                            {result.stdout && (
+                              <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
+                                {result.stdout}
+                              </pre>
+                            )}
+                            {result.msg && (
+                              Array.isArray(result.msg) ? (
                                 <div className="space-y-1">
-                                  {task.msg.map((line, idx) => (
-                                    <div key={idx} className="text-xs text-blue-800 dark:text-blue-200 font-mono">
+                                  {result.msg.map((line: string, idx: number) => (
+                                    <div key={idx} className="text-xs text-slate-800 dark:text-slate-200 font-mono">
                                       {line}
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-mono">
-                                  {task.msg}
+                                <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
+                                  {result.msg}
                                 </pre>
-                              )}
-                            </div>
-                          )}
+                              )
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                          {task.stdout && (
-                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
-                              <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">Output (stdout):</div>
-                              <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
-                                {task.stdout}
-                              </pre>
-                            </div>
-                          )}
-
-                          {task.stderr && (
-                            <div className="mt-2 p-2 bg-red-50 dark:bg-red-950/30 rounded border border-red-200 dark:border-red-800">
-                              <div className="text-xs font-semibold text-red-900 dark:text-red-300 mb-1">Error Output (stderr):</div>
-                              <pre className="text-xs text-red-800 dark:text-red-200 whitespace-pre-wrap font-mono overflow-x-auto">
-                                {task.stderr}
-                              </pre>
-                            </div>
-                          )}
-
-                          {task.results && task.results.length > 0 && (
-                            <div className="mt-2 space-y-2">
-                              {task.results.map((result: any, idx: number) => (
-                                <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-300 dark:border-slate-700">
-                                  <div className="text-xs font-semibold text-slate-900 dark:text-slate-300 mb-1">
-                                    Result {idx + 1}:
-                                  </div>
-                                  {result.stdout && (
-                                    <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono overflow-x-auto">
-                                      {result.stdout}
-                                    </pre>
-                                  )}
-                                  {result.msg && (
-                                    Array.isArray(result.msg) ? (
-                                      <div className="space-y-1">
-                                        {result.msg.map((line: string, idx: number) => (
-                                          <div key={idx} className="text-xs text-slate-800 dark:text-slate-200 font-mono">
-                                            {line}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <pre className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
-                                        {result.msg}
-                                      </pre>
-                                    )
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {task.result && !task.stdout && !task.stderr && !task.msg && !task.results && (
-                            <div className="mt-3 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm">
-                              <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">
-                                Task Result Details
-                              </div>
-                              <div className="text-xs">
-                                {formatResultValue(task.result)}
-                              </div>
-                            </div>
-                          )}
+                    {task.result && !task.stdout && !task.stderr && !task.msg && !task.results && (
+                      <div className="mt-3 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm">
+                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">
+                          Task Result Details
+                        </div>
+                        <div className="text-xs">
+                          {formatResultValue(task.result)}
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {parsed.recap && (
