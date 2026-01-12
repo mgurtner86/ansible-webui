@@ -18,25 +18,32 @@ import {
   Moon,
   Sun,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const { isDark, toggleDarkMode } = useDarkMode();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebarOpen');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
+  }, [sidebarOpen]);
 
   const navigation = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, color: 'bg-blue-500' },
-    { name: 'Playbooks', path: '/playbooks', icon: FolderGit2, color: 'bg-emerald-500' },
-    { name: 'Inventories', path: '/inventories', icon: Server, color: 'bg-cyan-500' },
-    { name: 'Templates', path: '/templates', icon: FileCode, color: 'bg-orange-500' },
-    { name: 'Jobs', path: '/jobs', icon: PlayCircle, color: 'bg-pink-500' },
-    { name: 'Schedules', path: '/schedules', icon: Calendar, color: 'bg-teal-500' },
-    { name: 'Credentials', path: '/credentials', icon: Key, color: 'bg-amber-500' },
-    { name: 'Audit', path: '/audit', icon: FileText, color: 'bg-slate-500' },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, color: 'bg-blue-500', iconColor: 'text-blue-500' },
+    { name: 'Playbooks', path: '/playbooks', icon: FolderGit2, color: 'bg-emerald-500', iconColor: 'text-emerald-500' },
+    { name: 'Inventories', path: '/inventories', icon: Server, color: 'bg-cyan-500', iconColor: 'text-cyan-500' },
+    { name: 'Templates', path: '/templates', icon: FileCode, color: 'bg-orange-500', iconColor: 'text-orange-500' },
+    { name: 'Jobs', path: '/jobs', icon: PlayCircle, color: 'bg-pink-500', iconColor: 'text-pink-500' },
+    { name: 'Schedules', path: '/schedules', icon: Calendar, color: 'bg-teal-500', iconColor: 'text-teal-500' },
+    { name: 'Credentials', path: '/credentials', icon: Key, color: 'bg-amber-500', iconColor: 'text-amber-500' },
+    { name: 'Audit', path: '/audit', icon: FileText, color: 'bg-slate-500', iconColor: 'text-slate-500' },
     ...(user?.role === 'admin' && user?.auth_provider === 'local'
-      ? [{ name: 'Settings', path: '/settings', icon: Settings, color: 'bg-gray-600' }]
+      ? [{ name: 'Settings', path: '/settings', icon: Settings, color: 'bg-gray-600', iconColor: 'text-gray-600' }]
       : []),
   ];
 
@@ -101,21 +108,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800 hover:shadow-sm'
                 } ${!sidebarOpen ? 'justify-center px-2' : ''}`}
               >
-                <div
-                  className={`flex items-center justify-center w-10 h-10 rounded-lg ${item.color} shadow-md transition-transform duration-200 ${
-                    isActive ? 'scale-110' : 'group-hover:scale-105'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-                {sidebarOpen && (
-                  <span
-                    className={`text-sm font-medium tracking-wide ${
-                      isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+                {sidebarOpen ? (
+                  <>
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-lg ${item.color} shadow-md transition-transform duration-200 ${
+                        isActive ? 'scale-110' : 'group-hover:scale-105'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <span
+                      className={`text-sm font-medium tracking-wide ${
+                        isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+                      }`}
+                    >
+                      {item.name}
+                    </span>
+                  </>
+                ) : (
+                  <Icon
+                    className={`w-6 h-6 ${item.iconColor} transition-transform duration-200 ${
+                      isActive ? 'scale-110' : 'group-hover:scale-105'
                     }`}
-                  >
-                    {item.name}
-                  </span>
+                    strokeWidth={2}
+                  />
                 )}
               </Link>
             );
