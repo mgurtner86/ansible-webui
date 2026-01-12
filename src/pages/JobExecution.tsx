@@ -35,10 +35,13 @@ export default function JobExecution() {
   }, [output, isLiveOutputExpanded]);
 
   useEffect(() => {
-    if (job && (job.status === 'completed' || job.status === 'failed' || job.status === 'canceled')) {
-      setIsLiveOutputExpanded(false);
+    if (job) {
+      const isFinished = job.status === 'completed' || job.status === 'failed' || job.status === 'canceled';
+      if (isFinished) {
+        setIsLiveOutputExpanded(false);
+      }
     }
-  }, [job?.status]);
+  }, [job]);
 
   async function loadJob() {
     try {
