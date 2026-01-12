@@ -220,20 +220,17 @@ async function processJob(job) {
           stdoutBuffer += text;
           jsonBuffer += text;
 
-          // For JSON callback, don't insert lines immediately
-          // We'll insert the complete JSON at the end
-          if (env.ANSIBLE_STDOUT_CALLBACK !== 'json') {
-            const lines = text.split('\n');
-            for (const line of lines) {
-              if (line.trim()) {
-                try {
-                  await pool.query(
-                    'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-                    [jobId, 'info', line + '\n']
-                  );
-                } catch (err) {
-                  console.error('Failed to insert job event:', err);
-                }
+          // Always insert lines for live output
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                await pool.query(
+                  'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
+                  [jobId, 'info', line + '\n']
+                );
+              } catch (err) {
+                console.error('Failed to insert job event:', err);
               }
             }
           }
