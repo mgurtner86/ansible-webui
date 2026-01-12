@@ -173,9 +173,11 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
         currentTask.host = host;
       }
 
+      // Check for JSON in the current line or following lines (multi-line JSON)
       const jsonStartIdx = trimmedLine.indexOf('{');
       if (jsonStartIdx !== -1) {
         try {
+          // Try single-line JSON first
           const jsonStr = trimmedLine.substring(jsonStartIdx);
           let braceCount = 0;
           let jsonEndIdx = -1;
@@ -190,16 +192,54 @@ export function parseAnsibleOutput(output: string): ParsedAnsibleOutput {
           }
 
           if (jsonEndIdx !== -1) {
+            // Single-line JSON found
             const jsonContent = JSON.parse(jsonStr.substring(0, jsonEndIdx + 1));
-
             if (currentTask) {
               if (jsonContent.stdout) currentTask.stdout = jsonContent.stdout;
               if (jsonContent.stderr) currentTask.stderr = jsonContent.stderr;
               if (jsonContent.msg) currentTask.msg = jsonContent.msg;
               if (jsonContent.results) currentTask.results = jsonContent.results;
             }
+          } else {
+            // Multi-line JSON - collect following lines
+            let jsonLines = [jsonStr];
+            let foundEnd = false;
+
+            for (let j = i + 1; j < lines.length && !foundEnd; j++) {
+              const nextLine = lines[j];
+              jsonLines.push(nextLine);
+
+              // Check if we've closed all braces
+              let fullJson = jsonLines.join('\n');
+              let braceCount = 0;
+              for (let k = 0; k < fullJson.length; k++) {
+                if (fullJson[k] === '{') braceCount++;
+                if (fullJson[k] === '}') braceCount--;
+                if (braceCount === 0 && fullJson[k] === '}') {
+                  foundEnd = true;
+                  i = j; // Skip these lines in main loop
+                  break;
+                }
+              }
+            }
+
+            if (foundEnd) {
+              const fullJson = jsonLines.join('\n');
+              try {
+                const jsonContent = JSON.parse(fullJson);
+                if (currentTask) {
+                  if (jsonContent.stdout) currentTask.stdout = jsonContent.stdout;
+                  if (jsonContent.stderr) currentTask.stderr = jsonContent.stderr;
+                  if (jsonContent.msg) currentTask.msg = jsonContent.msg;
+                  if (jsonContent.results) currentTask.results = jsonContent.results;
+                }
+              } catch (e) {
+                // Failed to parse multi-line JSON
+              }
+            }
           }
         } catch (e) {
+          // Failed to parse JSON
         }
       }
     } else if (trimmedLine.match(/^"?stdout"?\s*:/)) {
