@@ -27,6 +27,7 @@ interface AnsibleCollection {
   name: string;
   version: string;
   path: string;
+  removable?: boolean;
 }
 
 export default function Settings() {
@@ -206,15 +207,22 @@ export default function Settings() {
     }
   }
 
-  async function handleDeleteCollection(collection: string) {
-    if (!confirm(`Are you sure you want to remove collection ${collection}?`)) return;
+  async function handleDeleteCollection(collection: AnsibleCollection) {
+    if (!collection.removable) {
+      alert(`${collection.name} is a core Ansible collection and cannot be removed.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to remove collection ${collection.name}?`)) return;
 
     try {
-      await api.ansibleCollections.delete(collection);
+      await api.ansibleCollections.delete(collection.name);
       await loadData();
-    } catch (error) {
+      alert(`Collection ${collection.name} removed successfully`);
+    } catch (error: any) {
       console.error('Failed to remove collection:', error);
-      alert('Failed to remove collection');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to remove collection';
+      alert(errorMessage);
     }
   }
 
@@ -614,7 +622,14 @@ export default function Settings() {
                           <div className="flex items-center space-x-3">
                             <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             <div>
-                              <h3 className="font-medium text-slate-900 dark:text-slate-100">{collection.name}</h3>
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-medium text-slate-900 dark:text-slate-100">{collection.name}</h3>
+                                {!collection.removable && (
+                                  <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs rounded-full">
+                                    Core
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-slate-600 dark:text-slate-400">
                                 Version: {collection.version}
                               </p>
@@ -622,8 +637,14 @@ export default function Settings() {
                           </div>
                         </div>
                         <button
-                          onClick={() => handleDeleteCollection(collection.name)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                          onClick={() => handleDeleteCollection(collection)}
+                          disabled={!collection.removable}
+                          className={`p-2 rounded-lg ${
+                            collection.removable
+                              ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
+                              : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                          }`}
+                          title={collection.removable ? 'Remove collection' : 'Core collection cannot be removed'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

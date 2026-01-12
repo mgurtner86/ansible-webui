@@ -13,12 +13,17 @@ router.get('/', async (req, res) => {
     const collections = JSON.parse(stdout);
 
     const installed = [];
+    const nonRemovableCollections = ['ansible.builtin'];
+
     for (const [path, items] of Object.entries(collections)) {
+      const isUserPath = path.includes('.ansible/collections') || path.includes('ansible_collections');
+
       for (const [name, info] of Object.entries(items)) {
         installed.push({
           name,
           version: info.version,
-          path
+          path,
+          removable: isUserPath && !nonRemovableCollections.includes(name)
         });
       }
     }
@@ -69,8 +74,39 @@ router.delete('/:collection', async (req, res) => {
   try {
     const { collection } = req.params;
 
-    const collectionPath = collection.replace('.', '/');
-    const { stdout, stderr } = await execAsync(`rm -rf ~/.ansible/collections/ansible_collections/${collectionPath}`);
+    const nonRemovableCollections = ['ansible.builtin'];
+    if (nonRemovableCollections.includes(collection)) {
+      return res.status(400).json({
+        error: 'Cannot remove built-in collection',
+        message: `${collection} is a core Ansible collection and cannot be removed`
+      });
+    }
+
+    const collectionPath = collection.replace(/\./g, '/');
+
+    try {
+      await execAsync(`rm -rf ~/.ansible/collections/ansible_collections/${collectionPath}`);
+    } catch (rmError) {
+      console.error('Failed to remove from user directory:', rmError);
+    }
+
+    const { stdout: listOutput } = await execAsync('ansible-galaxy collection list --format json');
+    const remainingCollections = JSON.parse(listOutput);
+
+    let stillExists = false;
+    for (const [path, items] of Object.entries(remainingCollections)) {
+      if (items[collection]) {
+        stillExists = true;
+        break;
+      }
+    }
+
+    if (stillExists) {
+      return res.status(400).json({
+        error: 'Collection could not be fully removed',
+        message: `${collection} may be installed system-wide and requires administrator privileges to remove`
+      });
+    }
 
     await logAudit({
       actorId: req.session.userId,
