@@ -191,7 +191,7 @@ async function processJob(job) {
     const env = {
       ...process.env,
       ANSIBLE_HOST_KEY_CHECKING: 'False',
-      ANSIBLE_STDOUT_CALLBACK: 'json',
+      ANSIBLE_STDOUT_CALLBACK: 'default',
       ANSIBLE_FORCE_COLOR: 'false',
       ANSIBLE_NOCOLOR: 'true',
       ANSIBLE_WINRM_CONNECTION_TIMEOUT: '60',
@@ -201,63 +201,6 @@ async function processJob(job) {
     // Function to remove ANSI escape codes
     const stripAnsi = (str) => {
       return str.replace(/\x1b\[[0-9;]*m/g, '');
-    };
-
-    // Function to convert JSON output to readable Ansible format
-    const jsonToReadableOutput = (jsonData) => {
-      const lines = [];
-
-      try {
-        if (jsonData.plays && Array.isArray(jsonData.plays)) {
-          for (const play of jsonData.plays) {
-            if (play.play && play.play.name) {
-              lines.push(`\nPLAY [${play.play.name}] ${'*'.repeat(50)}\n`);
-            }
-
-            if (play.tasks && Array.isArray(play.tasks)) {
-              for (const task of play.tasks) {
-                if (task.task && task.task.name) {
-                  lines.push(`\nTASK [${task.task.name}] ${'*'.repeat(50)}`);
-                }
-
-                if (task.hosts) {
-                  for (const [hostname, result] of Object.entries(task.hosts)) {
-                    let status = 'ok';
-                    if (result.failed) status = 'fatal';
-                    else if (result.changed) status = 'changed';
-                    else if (result.skipped) status = 'skipping';
-                    else if (result.unreachable) status = 'unreachable';
-
-                    lines.push(`${status}: [${hostname}]`);
-
-                    if (result.msg) {
-                      lines.push(`  msg: ${result.msg}`);
-                    }
-                    if (result.stdout) {
-                      lines.push(`  stdout: ${result.stdout}`);
-                    }
-                    if (result.stderr) {
-                      lines.push(`  stderr: ${result.stderr}`);
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          // Add play recap
-          if (jsonData.stats) {
-            lines.push(`\nPLAY RECAP ${'*'.repeat(50)}`);
-            for (const [hostname, stats] of Object.entries(jsonData.stats)) {
-              lines.push(`${hostname.padEnd(30)} : ok=${stats.ok || 0}    changed=${stats.changed || 0}    unreachable=${stats.unreachable || 0}    failed=${stats.failures || 0}    skipped=${stats.skipped || 0}    rescued=${stats.rescued || 0}    ignored=${stats.ignored || 0}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error converting JSON to readable:', error);
-      }
-
-      return lines.join('\n');
     };
 
     try {
@@ -270,15 +213,25 @@ async function processJob(job) {
         let stdoutBuffer = '';
         let stderrBuffer = '';
         let hasError = false;
-        let jsonBuffer = '';
 
         process.stdout.on('data', async (data) => {
           const text = stripAnsi(data.toString());
           stdoutBuffer += text;
-          jsonBuffer += text;
 
-          // Don't insert raw JSON lines - we'll convert them later
-          // Just collect the data for now
+          // Insert lines immediately for real-time live output
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                await pool.query(
+                  'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
+                  [jobId, 'info', line + '\n']
+                );
+              } catch (err) {
+                console.error('Failed to insert job event:', err);
+              }
+            }
+          }
         });
 
         process.stderr.on('data', async (data) => {
@@ -303,59 +256,17 @@ async function processJob(job) {
         process.on('close', async (code) => {
           if (hasError) return;
 
-          // Parse JSON output and convert to readable format
-          let jsonData = null;
-          let readableOutput = '';
-
-          try {
-            if (jsonBuffer.trim()) {
-              jsonData = JSON.parse(jsonBuffer.trim());
-              readableOutput = jsonToReadableOutput(jsonData);
-
-              // Insert readable output line by line into job_events
-              const lines = readableOutput.split('\n');
-              for (const line of lines) {
-                if (line.trim()) {
-                  try {
-                    await pool.query(
-                      'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-                      [jobId, 'info', line + '\n']
-                    );
-                  } catch (err) {
-                    console.error('Failed to insert job event:', err);
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Failed to parse JSON output:', error);
-            // If JSON parsing fails, insert raw output
-            const lines = stdoutBuffer.split('\n');
-            for (const line of lines) {
-              if (line.trim()) {
-                try {
-                  await pool.query(
-                    'INSERT INTO job_events (job_id, level, message) VALUES ($1, $2, $3)',
-                    [jobId, 'info', line + '\n']
-                  );
-                } catch (err) {
-                  console.error('Failed to insert job event:', err);
-                }
-              }
-            }
-          }
-
           if (code === 0) {
             await pool.query(
               `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2,
-               summary = $3, output_json = $4 WHERE id = $5`,
-              ['success', 0, JSON.stringify({ hosts: hosts.length }), jsonData ? JSON.stringify(jsonData) : null, jobId]
+               summary = $3 WHERE id = $4`,
+              ['success', 0, JSON.stringify({ hosts: hosts.length }), jobId]
             );
             resolve();
           } else {
             await pool.query(
-              `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2, output_json = $3 WHERE id = $4`,
-              ['failed', code, jsonData ? JSON.stringify(jsonData) : null, jobId]
+              `UPDATE jobs SET status = $1, finished_at = NOW(), return_code = $2 WHERE id = $3`,
+              ['failed', code, jobId]
             );
             reject(new Error(`Process exited with code ${code}`));
           }
