@@ -38,9 +38,9 @@ export default function Jobs() {
         return <Play className="w-5 h-5 text-blue-600 animate-pulse" />;
       case 'pending':
       case 'queued':
-        return <Clock className="w-5 h-5 text-gray-400" />;
+        return <Clock className="w-5 h-5 text-slate-400 dark:text-slate-500" />;
       default:
-        return <Clock className="w-5 h-5 text-gray-400" />;
+        return <Clock className="w-5 h-5 text-slate-400 dark:text-slate-500" />;
     }
   }
 
@@ -73,7 +73,7 @@ export default function Jobs() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
       </Layout>
     );
@@ -98,19 +98,19 @@ export default function Jobs() {
           </button>
           <button
             onClick={() => setFilter('running')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'running' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'}`}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'running' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
           >
             Running
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'completed' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'}`}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'completed' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
           >
             Completed
           </button>
           <button
             onClick={() => setFilter('failed')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'failed' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'}`}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === 'failed' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
           >
             Failed
           </button>
@@ -130,29 +130,29 @@ export default function Jobs() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
-                      <h3 className="text-xl font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-xl font-medium text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {job.template_name}
                       </h3>
                       <span className={`px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm ${getStatusColor(job.status)}`}>
                         {job.status}
                       </span>
                     </div>
-                    <div className="space-y-2 text-sm text-slate-600">
+                    <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                       <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <span className="text-xs text-slate-500 uppercase tracking-wider">Job ID</span>
-                          <p className="font-mono mt-1">{job.id.slice(0, 8)}</p>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</span>
+                          <p className="font-mono mt-1 text-slate-900 dark:text-slate-100">{job.id.slice(0, 8)}</p>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 uppercase tracking-wider">Template</span>
-                          <p className="font-medium mt-1">{job.template_name}</p>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Template</span>
+                          <p className="font-medium mt-1 text-slate-900 dark:text-slate-100">{job.template_name}</p>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 uppercase tracking-wider">Inventory</span>
-                          <p className="font-medium mt-1">{job.inventory_name}</p>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inventory</span>
+                          <p className="font-medium mt-1 text-slate-900 dark:text-slate-100">{job.inventory_name}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-6 pt-2 text-xs text-slate-500">
+                      <div className="flex items-center space-x-6 pt-2 text-xs text-slate-500 dark:text-slate-400">
                         <span>Started: {new Date(job.started_at || job.created_at).toLocaleString()}</span>
                         {job.finished_at && (
                           <span>Finished: {new Date(job.finished_at).toLocaleString()}</span>
@@ -175,9 +175,9 @@ export default function Jobs() {
             </div>
           ))}
           {filteredJobs.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-xl shadow-md border border-slate-200/60">
-              <Play className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 text-lg">No jobs found. Launch a template to start a job.</p>
+            <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200/60 dark:border-slate-700/60">
+              <Play className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-500 dark:text-slate-400 text-lg">No jobs found. Launch a template to start a job.</p>
             </div>
           )}
         </div>
